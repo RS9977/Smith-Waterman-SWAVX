@@ -5,12 +5,13 @@
  ***********************************************************************/
 //This is the working AVX256 for 4B integer
 
-//gcc -mavx2 SWalgo_V4.c -lgomp -o SWalgo_V4
+//gcc -mavx2 -O3 SWAVX_256_SingleThread_SubMat.c -lgomp -o SWAVX_256_SingleThread_SubMat
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <stdint.h>
 #include <omp.h>
+#include <stdint.h>
 #include <xmmintrin.h>
 #include <smmintrin.h>
 #include <immintrin.h>
@@ -18,6 +19,42 @@
 #include <sys/stat.h>
 
 //#include <zmmintrin.h>
+
+
+int const iBlosum62 [] = {
+5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5, -3, 
+-3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, 5 
+};
 
 /*--------------------------------------------------------------------
  * Text Tweaks
@@ -38,7 +75,7 @@
 #define Vsize 8
 
 
-#define NumOfTest 1e3//1e4
+#define NumOfTest 1e0//1e4
 //#define DEBUG
 //#define pragmas
 /* End of constants */
@@ -48,7 +85,7 @@
  * Functions Prototypes
  */
 void similarityScore(long long int ind, long long int ind_u, long long int ind_d, long long int ind_l, long long int ii, long long int jj, int* H, int* P, long long int max_len, long long int* maxPos, long long int *maxPos_max_len);
-void similarityScoreIntrinsic(__m256i* H,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* P,__m256i ii,__m256i jj, int* H_main, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len);
+void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, __m256i reverseIndices, long long int ii, long long int jj, int* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len);
 int  matchMissmatchScore(long long int i, long long int j);
 void backtrack(int* P, long long int maxPos, long long int maxPos_max_len);
 void printMatrix(int* matrix);
@@ -67,10 +104,10 @@ long long int n = 7;  //Lines - Size of string b
 //Defines scores
 int matchScore = 5;
 int missmatchScore = -3;
-int gapScore = -4; 
+int gapScore = -10; 
 
 //Strings over the Alphabet Sigma
-char *a, *b;
+int8_t *a, *b;
 
 /* End of global variables */
 
@@ -91,8 +128,8 @@ int main(int argc, char* argv[]) {
         }
     }
     else{
-        m = 100000;
-        n = 10000;
+        m = 9;
+        n = 8;
     }
 
 
@@ -103,8 +140,8 @@ int main(int argc, char* argv[]) {
 
     
     //Allocates a and b
-    a = malloc(m * sizeof(char));
-    b = malloc(n * sizeof(char));
+    a = malloc(m * sizeof(int8_t));
+    b = malloc(n * sizeof(int8_t));
     
     //Because now we have zeros
     m++;
@@ -160,10 +197,10 @@ int main(int argc, char* argv[]) {
     #ifdef DEBUG
     printf("\n a string:\n");
     for(i=0; i<m-1; i++)
-        printf("%c ",a[i]);
+        printf("%d ",a[i]);
     printf("\n b string:\n");
     for(i=0; i<n-1; i++)
-        printf("%c ",b[i]);
+        printf("%d ",b[i]);
     printf("\n");
     #endif
     double t;
@@ -175,6 +212,7 @@ int main(int argc, char* argv[]) {
     long long int indul = 1;
     long long int ind_u, ind_d, ind_l; 
    __m256i offset =_mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+   __m256i reverseIndices = _mm256_setr_epi32(7, 6, 5, 4, 3, 2, 1, 0);
     for (i = 2; i < m+n-1; i++) { //Lines
         long long int max_len;
         long long int ii,jj;
@@ -212,30 +250,18 @@ int main(int argc, char* argv[]) {
         __m256i* Hd = (__m256i*) (H+ind_d+j_start);
         __m256i* HH = (__m256i*) (H+ind+j_start);
         __m256i* PP = (__m256i*) (P+ind+j_start);
-        /*uintptr_t addr = (uintptr_t)Hu;
-        int offs = addr & 0x1f;
-        if (offs != 0) {
-            Hu = (__m256i*)((uintptr_t)Hu - offs + 32);
-            Hl = (__m256i*)((uintptr_t)Hl - offs + 32);
-            Hd = (__m256i*)((uintptr_t)Hd - offs + 32);
-            HH = (__m256i*)((uintptr_t)HH - offs + 32);
-            PP = (__m256i*)((uintptr_t)PP - offs + 32);
-        }*/
-        //int Vsize = 256/sizeof(typeof(H));
-      //  #pragma gcc ivdep 
+     
         for (j = j_start; j <j_end-Vsize+1; j+=Vsize) { //Columns  
 
-           __m256i Joffset = _mm256_add_epi32(offset,_mm256_set1_epi32(j));
-           __m256i Ioffset = _mm256_set1_epi32(i);
-           __m256i mask    = _mm256_set1_epi32(-(int)(m>i));
-           __m256i I_J     = _mm256_sub_epi32(Ioffset, Joffset);
-           __m256i M_1     = _mm256_set1_epi32(m-1);
-           __m256i M_1_J   = _mm256_sub_epi32(M_1,Joffset);
-           __m256i II      = _mm256_blendv_epi8(M_1_J, I_J, mask);
-           __m256i IJ      = _mm256_add_epi32(Joffset, Ioffset);
-           __m256i I_MJ1   = _mm256_sub_epi32(IJ,M_1);
-           __m256i JJ      = _mm256_blendv_epi8(I_MJ1, Joffset, mask);
-           similarityScoreIntrinsic(HH, Hu, Hd, Hl, PP, II, JJ, H, ind+j, max_len, &maxPos, &maxPos_max_len);
+           if (i<m){
+                ii = i-j;
+                jj = j;
+            }
+            else{
+                ii = m-1-j;
+                jj = i-m+j+1;
+            } 
+           similarityScoreIntrinsic(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len);
            Hu++;
            Hl++;
            Hd++;
@@ -268,6 +294,37 @@ int main(int argc, char* argv[]) {
 
     printf("\nElapsed time: %f\n\n", (finalTime - initialTime)/NumOfTest);
 
+    #ifdef DEBUG
+    FILE* file = fopen("256_ST_SB.txt", "w");
+
+    // Check if the file was opened successfully
+    if (file == NULL) {
+        printf("Failed to open the file.\n");
+        return 1; // Return an error code
+    }
+    int ind;
+    fprintf(file, " \t \t");
+    for(i=0; i<m-1; i++)
+        fprintf(file,"%d\t",a[i]);
+    fprintf(file, "\n");
+    for (i = 0; i < n; i++) { //Lines
+        for (j = -1; j < m; j++) {
+            if(i+j<n)
+                ind = (i+j)*(i+j+1)/2 + i;
+            else if(i+j<m)
+                ind = (n+1)*(n)/2 + (i+j-n)*n + i;
+            else
+                ind = (i*j) + ((m-j)*(i+(i-(m-j-1))))/2 + ((n-i)*(j+(j-(n-i-1))))/2 + (m-j-1);
+            if(i+j<0)
+                fprintf(file, " \t");
+            else if(j==-1 && i>0)
+                fprintf(file, "%d\t",b[i-1]); 
+            else
+                fprintf(file, "%d\t", H[ind]);
+        }
+        fprintf(file, "\n");
+    }
+    #endif
     
     #ifdef DEBUG
     printf("\nSimilarity Matrix:\n");
@@ -304,7 +361,7 @@ void similarityScore(long long int ind, long long int ind_u, long long int ind_d
     left = H[ind_l] + gapScore;
 
     //Get element on the diagonal
-    diag = H[ind_d] + matchMissmatchScore(ii, jj);
+    diag = H[ind_d] + iBlosum62[a[ii-1]*32+b[jj-1]];
 
     //Calculates the maximum
     int max = NONE;
@@ -351,7 +408,7 @@ void similarityScore(long long int ind, long long int ind_u, long long int ind_d
 }  /* End of similarityScore */
 
 
-void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP,__m256i ii,__m256i jj, int* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len) {
+void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, __m256i reverseIndices, long long int ii, long long int jj, int* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len) {
 
    __m256i up, left, diag;
 
@@ -366,17 +423,16 @@ void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__
     left                  =_mm256_add_epi32(HHl,_mm256_set1_epi32(gapScore));
 
     //Get element on the diagonal
-    __m256i A             = _mm256_i32gather_epi32((void*) a, _mm256_sub_epi32(ii,_mm256_set1_epi32(1)), sizeof(char));
-    __m256i B             = _mm256_i32gather_epi32((void*) b, _mm256_sub_epi32(jj,_mm256_set1_epi32(1)), sizeof(char));
-   A                      = _mm256_slli_epi32(A,24);
-   B                      = _mm256_slli_epi32(B,24);
-   __m256i mask           = _mm256_cmpeq_epi32(A, B);
+    __m128i input = _mm_loadu_si128((__m128i*)(a+ii-8));
+    __m256i A     = _mm256_cvtepu8_epi32(input);
+            A     = _mm256_permutevar8x32_epi32(A, reverseIndices);
+            input = _mm_loadu_si128((__m128i*)(b+jj-1));
+    __m256i B     = _mm256_cvtepu8_epi32(input);
 
-   __m256i MATCHSCORE     =_mm256_set1_epi32(matchScore);
-   __m256i MISSMATCHSCORE =_mm256_set1_epi32(missmatchScore);
-  __m256i MATCHMISS       = _mm256_blendv_epi8(MISSMATCHSCORE, MATCHSCORE, mask);
-    diag                  =_mm256_add_epi32(HHd, MATCHMISS);
-
+    __m256i addresses = _mm256_add_epi32(_mm256_mullo_epi32(A, _mm256_set1_epi32(32)), B);
+    // Gather the values from the other matrix using the calculated addresses
+    __m256i gatheredData = _mm256_i32gather_epi32((void*) iBlosum62, addresses, sizeof(int ));
+     diag                  =_mm256_add_epi32(HHd, gatheredData);
 
     //Calculates the maximum
    __m256i max  =_mm256_set1_epi32(NONE);
@@ -397,7 +453,7 @@ void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__
      * a=GAATTCA
     */
    //same letter ↖
-    mask    = _mm256_cmpgt_epi32(diag, max);
+    __m256i mask    = _mm256_cmpgt_epi32(diag, max);
     max     = _mm256_blendv_epi8(max, diag, mask);
     pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi32(DIAGONAL), mask);
 
@@ -523,7 +579,7 @@ void printMatrix(int* matrix) {
     long long int i, j, ind;
     printf(" \t \t");
     for(i=0; i<m-1; i++)
-        printf("%c\t",a[i]);
+        printf("%d\t",a[i]);
     printf("\n");
     for (i = 0; i < n; i++) { //Lines
         for (j = -1; j < m; j++) {
@@ -536,7 +592,7 @@ void printMatrix(int* matrix) {
             if(i+j<0)
                 printf(" \t");
             else if(j==-1 && i>0)
-                printf("%c\t",b[i-1]); 
+                printf("%d\t",b[i-1]); 
             else
                 printf("%d\t", matrix[ind]);
         }
@@ -552,7 +608,7 @@ void printPredecessorMatrix(int* matrix) {
     long long int i, j, ind;
     printf("    ");
     for(i=0; i<m-1; i++)
-        printf("%c ",a[i]);
+        printf("%d ",a[i]);
     printf("\n");
     for (i = 0; i < n; i++) { //Lines
         for (j = -1; j < m; j++) {
@@ -565,7 +621,7 @@ void printPredecessorMatrix(int* matrix) {
             if(i+j<0)
                 printf("  ");
             else if(j==-1 && i>0)
-                printf("%c ",b[i-1]); 
+                printf("%d ",b[i-1]); 
             else{
                 if(matrix[ind] < 0) {
                     printf(BOLDRED);
@@ -604,6 +660,8 @@ void printPredecessorMatrix(int* matrix) {
     //Generates the values of a
     long long int i;
     for(i=0;i<m;i++){
+        a[i] = rand()%4;
+        /*
         int aux=rand()%4;
         if(aux==0)
             a[i]='A';
@@ -613,10 +671,13 @@ void printPredecessorMatrix(int* matrix) {
             a[i]='G';
         else
             a[i]='T';
+        */
     }
 
     //Generates the values of b
     for(i=0;i<n;i++){
+        b[i] = rand()%4;
+        /*
         int aux=rand()%4;
         if(aux==0)
             b[i]='A';
@@ -626,6 +687,7 @@ void printPredecessorMatrix(int* matrix) {
             b[i]='G';
         else
             b[i]='T';
+        */
     }
 } /* End of generate */
 
