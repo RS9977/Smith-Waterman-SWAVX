@@ -5,7 +5,7 @@
  ***********************************************************************/
 //This is the working AVX256 for 4B integer
 
-//gcc -mavx2 SWalgo_V4.c -lgomp -o SWalgo_V4
+//gcc -mavx2 -O3 SWAVX_256_SingleThread.c -lgomp -o SWAVX_256_SingleThread
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -38,7 +38,7 @@
 #define Vsize 8
 
 
-#define NumOfTest 1e3//1e4
+#define NumOfTest 1e4//1e4
 //#define DEBUG
 //#define pragmas
 /* End of constants */
@@ -48,7 +48,7 @@
  * Functions Prototypes
  */
 void similarityScore(long long int ind, long long int ind_u, long long int ind_d, long long int ind_l, long long int ii, long long int jj, int* H, int* P, long long int max_len, long long int* maxPos, long long int *maxPos_max_len);
-void similarityScoreIntrinsic(__m256i* H,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* P,__m256i ii,__m256i jj, int* H_main, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len);
+void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, __m256i reverseIndices, long long int ii, long long int jj, int* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len);
 int  matchMissmatchScore(long long int i, long long int j);
 void backtrack(int* P, long long int maxPos, long long int maxPos_max_len);
 void printMatrix(int* matrix);
@@ -67,7 +67,7 @@ long long int n = 7;  //Lines - Size of string b
 //Defines scores
 int matchScore = 5;
 int missmatchScore = -3;
-int gapScore = -4; 
+int gapScore = -10; 
 
 //Strings over the Alphabet Sigma
 char *a, *b;
@@ -175,6 +175,7 @@ int main(int argc, char* argv[]) {
     long long int indul = 1;
     long long int ind_u, ind_d, ind_l; 
    __m256i offset =_mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+   __m256i reverseIndices = _mm256_setr_epi32(7, 6, 5, 4, 3, 2, 1, 0);
     for (i = 2; i < m+n-1; i++) { //Lines
         long long int max_len;
         long long int ii,jj;
@@ -186,6 +187,8 @@ int main(int argc, char* argv[]) {
             ind_u   = ind - max_len;
             ind_l   = ind - max_len + 1;
             ind_d   = ind - (max_len<<1) + 2;
+            ii = i-j_start;
+            jj = j_start;
         }
 	    else if (i>=m){
 		    max_len = m+n-1-i;
@@ -194,13 +197,17 @@ int main(int argc, char* argv[]) {
             ind_u   = ind - max_len - 1;
             ind_l   = ind - max_len; 
             ind_d   = ind - (max_len<<1) - 2;
+            ii = m-1-j_start;
+            jj = i-m+j_start+1;
         }
 	    else{
 		    max_len   = n;
             j_start = 1;
             j_end   = max_len;
             ind_u     = ind - max_len - 1;
-            ind_l     = ind - max_len; 
+            ind_l     = ind - max_len;
+            ii = i-j_start;
+            jj = j_start; 
             if(i>n)
                 ind_d = ind - (max_len<<1) - 1;
             else
@@ -212,61 +219,36 @@ int main(int argc, char* argv[]) {
         __m256i* Hd = (__m256i*) (H+ind_d+j_start);
         __m256i* HH = (__m256i*) (H+ind+j_start);
         __m256i* PP = (__m256i*) (P+ind+j_start);
-        /*uintptr_t addr = (uintptr_t)Hu;
-        int offs = addr & 0x1f;
-        if (offs != 0) {
-            Hu = (__m256i*)((uintptr_t)Hu - offs + 32);
-            Hl = (__m256i*)((uintptr_t)Hl - offs + 32);
-            Hd = (__m256i*)((uintptr_t)Hd - offs + 32);
-            HH = (__m256i*)((uintptr_t)HH - offs + 32);
-            PP = (__m256i*)((uintptr_t)PP - offs + 32);
-        }*/
-        //int Vsize = 256/sizeof(typeof(H));
-      //  #pragma gcc ivdep 
-        for (j = j_start; j <j_end-Vsize+1; j+=Vsize) { //Columns  
-
-           __m256i Joffset = _mm256_add_epi32(offset,_mm256_set1_epi32(j));
-           __m256i Ioffset = _mm256_set1_epi32(i);
-           __m256i mask    = _mm256_set1_epi32(-(int)(m>i));
-           __m256i I_J     = _mm256_sub_epi32(Ioffset, Joffset);
-           __m256i M_1     = _mm256_set1_epi32(m-1);
-           __m256i M_1_J   = _mm256_sub_epi32(M_1,Joffset);
-           __m256i II      = _mm256_blendv_epi8(M_1_J, I_J, mask);
-           __m256i IJ      = _mm256_add_epi32(Joffset, Ioffset);
-           __m256i I_MJ1   = _mm256_sub_epi32(IJ,M_1);
-           __m256i JJ      = _mm256_blendv_epi8(I_MJ1, Joffset, mask);
-           similarityScoreIntrinsic(HH, Hu, Hd, Hl, PP, II, JJ, H, ind+j, max_len, &maxPos, &maxPos_max_len);
+        
+        for (j=j_start; j <j_end-Vsize+1; j+=Vsize) { //Columns          
+           similarityScoreIntrinsic(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len);
+           ii -= Vsize;
+           jj += Vsize;
            Hu++;
            Hl++;
            Hd++;
            HH++;
            PP++;
         }
-       
-        for(;j<j_end; j++){
-            if (i<m){
-                ii = i-j;
-                jj = j;
-            }
-            else{
-                ii = m-1-j;
-                jj = i-m+j+1;
-            }      
+        for(;j<j_end; j++){   
             similarityScore(ind+j, ind_u+j, ind_d+j, ind_l+j, ii, jj, H, P, max_len, &maxPos, &maxPos_max_len);
+            ii --;
+            jj ++;
         }
         ind += max_len;
     }
     
-    backtrack(P, maxPos, maxPos_max_len);
+    
 
 
     }
 
-
+    backtrack(P, maxPos, maxPos_max_len);
     //Gets final time
     double finalTime = omp_get_wtime();
-
-    printf("\nElapsed time: %f\n\n", (finalTime - initialTime)/NumOfTest);
+    double MeanTime = (finalTime - initialTime)/NumOfTest;
+    printf("\nElapsed time: %f\n", MeanTime);
+    printf("GCUPS: %f\n", (m-1)*(n-1)/(1e9*MeanTime));
 
     
     #ifdef DEBUG
@@ -351,7 +333,7 @@ void similarityScore(long long int ind, long long int ind_u, long long int ind_d
 }  /* End of similarityScore */
 
 
-void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP,__m256i ii,__m256i jj, int* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len) {
+void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, __m256i reverseIndices, long long int ii, long long int jj, int* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len) {
 
    __m256i up, left, diag;
 
@@ -366,10 +348,11 @@ void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__
     left                   =_mm256_add_epi32(HHl,_mm256_set1_epi32(gapScore));
 
     //Get element on the diagonal
-    __m256i A              =_mm256_i32gather_epi32((void*) a, _mm256_sub_epi32(ii,_mm256_set1_epi32(1)), sizeof(char));
-    __m256i B              =_mm256_i32gather_epi32((void*) b, _mm256_sub_epi32(jj,_mm256_set1_epi32(1)), sizeof(char));
-   A                      = _mm256_slli_epi32(A,24);
-   B                      = _mm256_slli_epi32(B,24);
+    __m128i input = _mm_loadu_si128((__m128i*)(a+ii-8));
+    __m256i A     = _mm256_cvtepu8_epi32(input);
+            A     = _mm256_permutevar8x32_epi32(A, reverseIndices);
+            input = _mm_loadu_si128((__m128i*)(b+jj-1));
+    __m256i B     = _mm256_cvtepu8_epi32(input);
    __m256i mask           = _mm256_cmpeq_epi32(A, B);
 
    __m256i MATCHSCORE     =_mm256_set1_epi32(matchScore);

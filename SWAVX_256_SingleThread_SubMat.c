@@ -75,7 +75,7 @@ int const iBlosum62 [] = {
 #define Vsize 8
 
 
-#define NumOfTest 1e0//1e4
+#define NumOfTest 1e4//1e4
 //#define DEBUG
 //#define pragmas
 /* End of constants */
@@ -224,6 +224,8 @@ int main(int argc, char* argv[]) {
             ind_u   = ind - max_len;
             ind_l   = ind - max_len + 1;
             ind_d   = ind - (max_len<<1) + 2;
+            ii = i-j_start;
+            jj = j_start;
         }
 	    else if (i>=m){
 		    max_len = m+n-1-i;
@@ -232,13 +234,17 @@ int main(int argc, char* argv[]) {
             ind_u   = ind - max_len - 1;
             ind_l   = ind - max_len; 
             ind_d   = ind - (max_len<<1) - 2;
+            ii = m-1-j_start;
+            jj = i-m+j_start+1;
         }
 	    else{
 		    max_len   = n;
             j_start = 1;
             j_end   = max_len;
             ind_u     = ind - max_len - 1;
-            ind_l     = ind - max_len; 
+            ind_l     = ind - max_len;
+            ii = i-j_start;
+            jj = j_start; 
             if(i>n)
                 ind_d = ind - (max_len<<1) - 1;
             else
@@ -250,49 +256,36 @@ int main(int argc, char* argv[]) {
         __m256i* Hd = (__m256i*) (H+ind_d+j_start);
         __m256i* HH = (__m256i*) (H+ind+j_start);
         __m256i* PP = (__m256i*) (P+ind+j_start);
-     
-        for (j = j_start; j <j_end-Vsize+1; j+=Vsize) { //Columns  
-
-           if (i<m){
-                ii = i-j;
-                jj = j;
-            }
-            else{
-                ii = m-1-j;
-                jj = i-m+j+1;
-            } 
+        
+        for (j=j_start; j <j_end-Vsize+1; j+=Vsize) { //Columns          
            similarityScoreIntrinsic(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len);
+           ii -= Vsize;
+           jj += Vsize;
            Hu++;
            Hl++;
            Hd++;
            HH++;
            PP++;
         }
-       
-        for(;j<j_end; j++){
-            if (i<m){
-                ii = i-j;
-                jj = j;
-            }
-            else{
-                ii = m-1-j;
-                jj = i-m+j+1;
-            }      
+        for(;j<j_end; j++){   
             similarityScore(ind+j, ind_u+j, ind_d+j, ind_l+j, ii, jj, H, P, max_len, &maxPos, &maxPos_max_len);
+            ii --;
+            jj ++;
         }
         ind += max_len;
     }
     
-    backtrack(P, maxPos, maxPos_max_len);
-
-
     }
 
+    backtrack(P, maxPos, maxPos_max_len);
 
     //Gets final time
     double finalTime = omp_get_wtime();
 
-    printf("\nElapsed time: %f\n\n", (finalTime - initialTime)/NumOfTest);
+    double MeanTime = (finalTime - initialTime)/NumOfTest;
+    printf("\nElapsed time: %f\n", MeanTime);
+    printf("GCUPS: %f\n", (m-1)*(n-1)/(1e9*MeanTime));
+
 
     #ifdef DEBUG
     FILE* file = fopen("256_ST_SB.txt", "w");
