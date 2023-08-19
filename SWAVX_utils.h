@@ -14,3 +14,4 @@
 void printMatrix(int* matrix, int8_t *a, int8_t *b, int m, int n);
 void printPredecessorMatrix(int* matrix, int8_t *a, int8_t *b, int m, int n);
 void generate(int8_t *a, int8_t *b, int m, int n);
+void saveInFile (int *H, int8_t *a, int8_t *b, int m, int n);

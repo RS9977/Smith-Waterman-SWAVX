@@ -119,3 +119,39 @@ void printPredecessorMatrix(int* matrix, int8_t *a, int8_t *b, int m, int n) {
         */
     }
 } /* End of generate */
+
+
+
+void saveInFile (int *H, int8_t *a, int8_t *b, int m, int n){
+    FILE* file = fopen("256_ST_SB.txt", "w");
+
+    // Check if the file was opened successfully
+    if (file == NULL) {
+        printf("Failed to open the file.\n");
+    }
+    else{
+        int ind;
+        fprintf(file, " \t \t");
+        int i, j;
+        for(i=0; i<m-1; i++)
+            fprintf(file,"%d\t",a[i]);
+        fprintf(file, "\n");
+        for (i = 0; i < n; i++) { //Lines
+            for (j = -1; j < m; j++) {
+                if(i+j<n)
+                    ind = (i+j)*(i+j+1)/2 + i;
+                else if(i+j<m)
+                    ind = (n+1)*(n)/2 + (i+j-n)*n + i;
+                else
+                    ind = (i*j) + ((m-j)*(i+(i-(m-j-1))))/2 + ((n-i)*(j+(j-(n-i-1))))/2 + (m-j-1);
+                if(i+j<0)
+                    fprintf(file, " \t");
+                else if(j==-1 && i>0)
+                    fprintf(file, "%d\t",b[i-1]); 
+                else
+                    fprintf(file, "%d\t", H[ind]);
+            }
+            fprintf(file, "\n");
+        }
+    }
+}

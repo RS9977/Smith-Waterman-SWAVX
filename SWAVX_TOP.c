@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
 
 
     #ifdef DEBUG
-    printf("\nMatrix[%lld][%lld]\n", n, m);
+    printf("\nMatrix[%d][%d]\n", n, m);
     #endif
 
 
@@ -48,45 +48,15 @@ int main(int argc, char* argv[]) {
     generate(a, b, m, n);
 
     SWAVX_256_SeqToSeq_SubMat(a, b, H, P, m, n, 1, -10);
-
-    #ifdef DEBUG
-    FILE* file = fopen("256_ST_SB.txt", "w");
-
-    // Check if the file was opened successfully
-    if (file == NULL) {
-        printf("Failed to open the file.\n");
-        return 1; // Return an error code
-    }
-    int ind;
-    fprintf(file, " \t \t");
-    for(i=0; i<m-1; i++)
-        fprintf(file,"%d\t",a[i]);
-    fprintf(file, "\n");
-    for (i = 0; i < n; i++) { //Lines
-        for (j = -1; j < m; j++) {
-            if(i+j<n)
-                ind = (i+j)*(i+j+1)/2 + i;
-            else if(i+j<m)
-                ind = (n+1)*(n)/2 + (i+j-n)*n + i;
-            else
-                ind = (i*j) + ((m-j)*(i+(i-(m-j-1))))/2 + ((n-i)*(j+(j-(n-i-1))))/2 + (m-j-1);
-            if(i+j<0)
-                fprintf(file, " \t");
-            else if(j==-1 && i>0)
-                fprintf(file, "%d\t",b[i-1]); 
-            else
-                fprintf(file, "%d\t", H[ind]);
-        }
-        fprintf(file, "\n");
-    }
-    #endif
     
     #ifdef DEBUG
+    saveInFile(H, a, b, m, n);
+
     printf("\nSimilarity Matrix:\n");
-    printMatrix(H);
+    printMatrix(H, a, b, m, n);
 
     printf("\nPredecessor Matrix:\n");
-    printPredecessorMatrix(P);
+    printPredecessorMatrix(P, a, b, m, n);
     #endif
 
     //Frees similarity matrixes
