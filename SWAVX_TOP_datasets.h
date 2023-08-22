@@ -4,4 +4,4 @@
 #include "SWAVX_utils.h"
 #include "SWAVX_256_Func_SeqToSeq_SubMat.h"
 
-#define NumOfTest 1
+#define NumOfTest 1e2

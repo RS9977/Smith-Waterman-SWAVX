@@ -47,8 +47,28 @@ int main(int argc, char* argv[]) {
     //Gen rand arrays a and b
     generate(a, b, m, n);
 
-    SWAVX_256_SeqToSeq_SubMat(a, b, H, P, m, n, 1, -10);
+    double initialTime = omp_get_wtime();
+
+    #ifdef DEBUG
+    printf("\n a string:\n");
+    for(i=0; i<m-1; i++)
+        printf("%d ",a[i]);
+    printf("\n b string:\n");
+    for(i=0; i<n-1; i++)
+        printf("%d ",b[i]);
+    printf("\n");
+    #endif
     
+    SWAVX_256_SeqToSeq_SubMat(a, b, H, P, m, n, NumOfTest, -10);
+    
+    //Gets final time
+    double finalTime = omp_get_wtime();
+
+    double MeanTime = (finalTime - initialTime)/NumOfTest;
+    printf("\nElapsed time: %f\n", MeanTime);
+    printf("GCUPS: %f\n", (m-1)*(n-1)/(1e9*MeanTime));
+
+
     #ifdef DEBUG
     saveInFile(H, a, b, m, n);
 

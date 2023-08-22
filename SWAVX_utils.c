@@ -121,7 +121,7 @@ void printPredecessorMatrix(int* matrix, int8_t *a, int8_t *b, int m, int n) {
 } /* End of generate */
 
 
-
+//Saving the Similarity matrix in a file
 void saveInFile (int *H, int8_t *a, int8_t *b, int m, int n){
     FILE* file = fopen("256_ST_SB.txt", "w");
 
@@ -154,4 +154,71 @@ void saveInFile (int *H, int8_t *a, int8_t *b, int m, int n){
             fprintf(file, "\n");
         }
     }
+}
+
+
+//Read Dataset
+
+int readProteinDataset(const char *filename, ProteinEntry **proteinEntries, int *numEntries) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        perror("Error opening file");
+        return 0;
+    }
+
+    int maxEntries = 1000; // Initial capacity, can be adjusted
+    *proteinEntries = (ProteinEntry *)malloc(maxEntries * sizeof(ProteinEntry));
+    if (*proteinEntries == NULL) {
+        perror("Memory allocation failed");
+        fclose(file);
+        return 0;
+    }
+
+    int entryCount = 0;
+    char line[1024]; // Adjust this based on your dataset
+    int8_t *sequence = NULL;
+    int seqLength = 0;
+    int sequenceStarted = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        if (line[0] == '>') {
+            sequenceStarted = 1;
+            if (sequence != NULL) {
+                (*proteinEntries)[entryCount].protein = sequence;
+                (*proteinEntries)[entryCount].length = seqLength;
+                entryCount++;
+            }
+            sequence = NULL;
+            seqLength = 0;
+        } else if (sequenceStarted) {
+            line[strcspn(line, "\r\n")] = 0; // Remove trailing newline characters
+            int lineLength = strlen(line);
+            if (lineLength > 0) {
+                if (sequence == NULL) {
+                    sequence = (int8_t *)malloc(lineLength * sizeof(int8_t));
+                } else {
+                    sequence = (int8_t *)realloc(sequence, (seqLength + lineLength) * sizeof(int8_t));
+                }
+                if (sequence == NULL) {
+                    perror("Memory allocation failed");
+                    fclose(file);
+                    return 0;
+                }
+                for (int i = 0; i < lineLength; i++) {
+                    sequence[seqLength + i] = line[i] - 'A'; // Convert char to numeric value
+                }
+                seqLength += lineLength;
+            }
+        }
+    }
+
+    if (sequence != NULL) {
+        (*proteinEntries)[entryCount].protein = sequence;
+        (*proteinEntries)[entryCount].length = seqLength;
+        entryCount++;
+    }
+
+    fclose(file);
+    *numEntries = entryCount;
+    return 1;
 }

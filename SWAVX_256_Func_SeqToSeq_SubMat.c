@@ -11,21 +11,6 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
 
     int Vsize = 8;
 
-    double initialTime = omp_get_wtime();
-    #ifdef pragmas
-    #pragma GCC ivdep
-    #endif
-
-
-    #ifdef DEBUG
-    printf("\n a string:\n");
-    for(i=0; i<m-1; i++)
-        printf("%d ",a[i]);
-    printf("\n b string:\n");
-    for(i=0; i<n-1; i++)
-        printf("%d ",b[i]);
-    printf("\n");
-    #endif
     double t;
     int it;
     for(it=0; it<NumOfTest; it++){
@@ -99,13 +84,6 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
     } 
     }
     backtrack(P, maxPos, maxPos_max_len, m, n);
-
-    //Gets final time
-    double finalTime = omp_get_wtime();
-
-    double MeanTime = (finalTime - initialTime)/NumOfTest;
-    printf("\nElapsed time: %f\n", MeanTime);
-    printf("GCUPS: %f\n", (m-1)*(n-1)/(1e9*MeanTime));
 
 }
 
