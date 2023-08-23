@@ -10,11 +10,6 @@ int main(int argc, char* argv[]) {
         filenameB = argv[2];
     }
 
-
-    #ifdef DEBUG
-    printf("\nMatrix[%d][%d]\n", n, m);
-    #endif
-
     
     ProteinEntry *proteinEntriesA;
     int numEntriesA;
