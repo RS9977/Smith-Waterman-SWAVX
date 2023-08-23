@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <sys/stat.h>
 
+#include "SWAVX_utils.h"
 #include "SWAVX_SubMat.h"
 
 #define PATH -1

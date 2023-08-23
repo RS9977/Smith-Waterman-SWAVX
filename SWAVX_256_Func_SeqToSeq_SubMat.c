@@ -2,18 +2,30 @@
 
 void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int n, int NumOfTest, int gapScore){
 
-    //Start position for backtrack
-    long long int maxPos         = 0;
-    long long int maxPos_max_len = 0;
-
     //Calculates the similarity matrix
     long long int i, j;
+
+    //Start position for backtrack
+    #ifdef DEBUG
+    printf("\nMatrix[%d][%d]\n", n, m);
+    printf("\n a string:\n");
+    for(i=0; i<m-1; i++)
+        printf("%d ",a[i]);
+    printf("\n b string:\n");
+    for(i=0; i<n-1; i++)
+        printf("%d ",b[i]);
+    printf("\n");
+    #endif
+
+    
 
     int Vsize = 8;
 
     double t;
     int it;
     for(it=0; it<NumOfTest; it++){
+    long long int maxPos         = 0;
+    long long int maxPos_max_len = 0;
 
     long long int ind   = 3;
     long long int indd  = 0;
@@ -82,8 +94,18 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
         }
         ind += max_len;
     } 
+       backtrack(P, maxPos, maxPos_max_len, m, n);
     }
-    backtrack(P, maxPos, maxPos_max_len, m, n);
+
+    #ifdef DEBUG
+    saveInFile(H, a, b, m, n);
+
+    printf("\nSimilarity Matrix:\n");
+    printMatrix(H, a, b, m, n);
+
+    printf("\nPredecessor Matrix:\n");
+    printPredecessorMatrix(P, a, b, m, n);
+    #endif
 
 }
 

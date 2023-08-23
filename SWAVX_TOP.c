@@ -19,13 +19,6 @@ int main(int argc, char* argv[]) {
         m = 9;
         n = 8;
     }
-
-
-    #ifdef DEBUG
-    printf("\nMatrix[%d][%d]\n", n, m);
-    #endif
-
-
     
     //Allocates a and b
     a = malloc(m * sizeof(int8_t));
@@ -48,16 +41,6 @@ int main(int argc, char* argv[]) {
     generate(a, b, m, n);
 
     double initialTime = omp_get_wtime();
-
-    #ifdef DEBUG
-    printf("\n a string:\n");
-    for(i=0; i<m-1; i++)
-        printf("%d ",a[i]);
-    printf("\n b string:\n");
-    for(i=0; i<n-1; i++)
-        printf("%d ",b[i]);
-    printf("\n");
-    #endif
     
     SWAVX_256_SeqToSeq_SubMat(a, b, H, P, m, n, NumOfTest, -10);
     
@@ -67,17 +50,6 @@ int main(int argc, char* argv[]) {
     double MeanTime = (finalTime - initialTime)/NumOfTest;
     printf("\nElapsed time: %f\n", MeanTime);
     printf("GCUPS: %f\n", (m-1)*(n-1)/(1e9*MeanTime));
-
-
-    #ifdef DEBUG
-    saveInFile(H, a, b, m, n);
-
-    printf("\nSimilarity Matrix:\n");
-    printMatrix(H, a, b, m, n);
-
-    printf("\nPredecessor Matrix:\n");
-    printPredecessorMatrix(P, a, b, m, n);
-    #endif
 
     //Frees similarity matrixes
     free(H);
