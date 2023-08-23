@@ -1,8 +1,3 @@
-/***********************************************************************
- * Smith–Waterman algorithm
- * Purpose:     Local alignment of nucleotide or protein sequences
- * Authors:     Daniel Holanda, Hanoch Griner, Taynara Pinheiro
- ***********************************************************************/
 //This is the working AVX256 for 4B integer
 
 //gcc -mavx2 -O3 SWAVX_256_SingleThread_SubMat.c -lgomp -o SWAVX_256_SingleThread_SubMat

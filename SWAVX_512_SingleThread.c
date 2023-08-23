@@ -1,8 +1,3 @@
-/***********************************************************************
- * Smith–Waterman algorithm
- * Purpose:     Local alignment of nucleotide or protein sequences
- * Authors:     Daniel Holanda, Hanoch Griner, Taynara Pinheiro
- ***********************************************************************/
 //This is the AVX512 version.
 
 
