@@ -12,6 +12,8 @@
 #define RESET   "\033[0m"
 #define BOLDRED "\033[1m\033[31m"      /* Bold Red */
 
+#define BUFFER_SIZE 128
+
 typedef struct {
     int8_t *protein;
     int length;
@@ -22,3 +24,4 @@ void printPredecessorMatrix(int* matrix, int8_t *a, int8_t *b, int m, int n);
 void generate(int8_t *a, int8_t *b, int m, int n);
 void saveInFile (int *H, int8_t *a, int8_t *b, int m, int n);
 int readProteinDataset(const char *filename, ProteinEntry **proteinEntries, int *numEntries);
+int getNumCPUThreads();
