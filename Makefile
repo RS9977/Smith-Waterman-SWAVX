@@ -19,5 +19,27 @@ AVX2_32_D_datasets:
 AVX2_32_datasets:
 	gcc -O3 $(src) SWAVX_TOP_datasets.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lgomp -o SWAVX
 
+
+AVX512_32_D_SM:
+	gcc -O3 $(src) SWAVX_TOP.c SWAVX_512_Func_SeqToSeq_SubMat.c -mavx512f -lgomp -o SWAVX -D DEBUG -D SUBMAT -D B512
+AVX512_32_SM:
+	gcc -O3 $(src) SWAVX_TOP.c SWAVX_512_Func_SeqToSeq_SubMat.c -mavx512f -lgomp -o SWAVX -D SUBMAT -D B512
+
+AVX512_32_D_SM_datasets:
+	gcc -O3 $(src) SWAVX_TOP_datasets.c SWAVX_512_Func_SeqToSeq_SubMat.c -mavx512f -lgomp -o SWAVX -D DEBUG -D SUBMAT -D B512
+AVX512_32_SM_datasets:
+	gcc -O3 $(src) SWAVX_TOP_datasets.c SWAVX_512_Func_SeqToSeq_SubMat.c -mavx512f -lgomp -o SWAVX -D SUBMAT -D B512
+
+AVX512_32_D:
+	gcc -O3 $(src) SWAVX_TOP.c SWAVX_512_Func_SeqToSeq_SubMat.c -mavx512f -lgomp -o SWAVX -D DEBUG -D B512
+AVX512_32:
+	gcc -O3 $(src) SWAVX_TOP.c SWAVX_512_Func_SeqToSeq_SubMat.c -mavx512f -lgomp -o SWAVX -D B512
+
+AVX512_32_D_datasets:
+	gcc -O3 $(src) SWAVX_TOP_datasets.c SWAVX_512_Func_SeqToSeq_SubMat.c -mavx512f -lgomp -o SWAVX -D DEBUG -D B512
+AVX512_32_datasets:
+	gcc -O3 $(src) SWAVX_TOP_datasets.c SWAVX_512_Func_SeqToSeq_SubMat.c -mavx512f -lgomp -o SWAVX -D B512
+
+
 clean: 
 	rm SWAVX

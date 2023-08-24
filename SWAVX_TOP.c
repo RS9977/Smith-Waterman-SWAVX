@@ -42,7 +42,11 @@ int main(int argc, char* argv[]) {
 
     double initialTime = omp_get_wtime();
     
+    #ifdef B512
+    SWAVX_512_SeqToSeq_SubMat(a, b, H, P, m, n, NumOfTest, -10);
+    #else
     SWAVX_256_SeqToSeq_SubMat(a, b, H, P, m, n, NumOfTest, -10);
+    #endif
     
     //Gets final time
     double finalTime = omp_get_wtime();
