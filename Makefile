@@ -1,4 +1,14 @@
 src = SWAVX_utils.c SWAVX_SubMat.c
+AVX2_32_D_SM:
+	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lgomp -o SWAVX -D DEBUG -D SUBMAT
+AVX2_32_SM:
+	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lgomp -o SWAVX -D SUBMAT
+
+AVX2_32_D_SM_datasets:
+	gcc -O3 $(src) SWAVX_TOP_datasets.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lgomp -o SWAVX -D DEBUG -D SUBMAT
+AVX2_32_SM_datasets:
+	gcc -O3 $(src) SWAVX_TOP_datasets.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lgomp -o SWAVX -D SUBMAT
+
 AVX2_32_D:
 	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lgomp -o SWAVX -D DEBUG
 AVX2_32:

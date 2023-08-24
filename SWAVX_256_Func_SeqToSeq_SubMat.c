@@ -114,13 +114,17 @@ void similarityScore(long long int ind, long long int ind_u, long long int ind_d
     int up, left, diag;
 
     //Get element above
-    up = H[ind_u] + gapScore;
+    up   = H[ind_u] + gapScore;
 
     //Get element on the left
     left = H[ind_l] + gapScore;
 
+    #ifdef SUBMAT
     //Get element on the diagonal
     diag = H[ind_d] + iBlosum62[a[ii-1]*32+b[jj-1]];
+    #else
+    diag = H[ind_d] + matchMissmatchScore(ii, jj, a, b);
+    #endif
 
     //Calculates the maximum
     int max = NONE;
@@ -188,10 +192,21 @@ void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__
             input = _mm_loadu_si128((__m128i*)(b+jj-1));
     __m256i B     = _mm256_cvtepu8_epi32(input);
 
+    __m256i mask; 
+    #ifdef SUBMAT
     __m256i addresses = _mm256_add_epi32(_mm256_mullo_epi32(A, _mm256_set1_epi32(32)), B);
     // Gather the values from the other matrix using the calculated addresses
     __m256i gatheredData = _mm256_i32gather_epi32((void*) iBlosum62, addresses, sizeof(int ));
      diag                  =_mm256_add_epi32(HHd, gatheredData);
+
+    #else
+            mask           = _mm256_cmpeq_epi32(A, B);
+
+    __m256i MATCHSCORE     =_mm256_set1_epi32(matchScore);
+    __m256i MISSMATCHSCORE =_mm256_set1_epi32(missmatchScore);
+    __m256i MATCHMISS      = _mm256_blendv_epi8(MISSMATCHSCORE, MATCHSCORE, mask);
+    diag                   =_mm256_add_epi32(HHd, MATCHMISS);
+    #endif
 
     //Calculates the maximum
    __m256i max  =_mm256_set1_epi32(NONE);
@@ -212,7 +227,7 @@ void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__
      * a=GAATTCA
     */
    //same letter ↖
-    __m256i mask    = _mm256_cmpgt_epi32(diag, max);
+    mask    = _mm256_cmpgt_epi32(diag, max);
     max     = _mm256_blendv_epi8(max, diag, mask);
     pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi32(DIAGONAL), mask);
 
@@ -316,3 +331,14 @@ void backtrack(int* P, long long int maxPos, long long int maxPos_max_len, int m
         maxPos_max_len = predMaxLen;
     } while(P[maxPos] != NONE);
 }  /* End of backtrack */
+
+/*--------------------------------------------------------------------
+ * Function:    matchMissmatchScore
+ * Purpose:     Similarity function on the alphabet for match/missmatch
+ */
+int matchMissmatchScore(long long int i, long long int j, int8_t* a, int8_t* b) {
+    if (a[i-1] == b[j-1])
+        return matchScore;
+    else
+        return missmatchScore;
+}  /* End of matchMissmatchScore */
