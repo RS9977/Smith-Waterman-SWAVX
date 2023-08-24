@@ -222,3 +222,28 @@ int readProteinDataset(const char *filename, ProteinEntry **proteinEntries, int 
     *numEntries = entryCount;
     return 1;
 }
+
+//Get CPU threads
+int getNumCPUThreads() {
+    char buffer[BUFFER_SIZE];
+    char* command = "lscpu | grep 'CPU(s):'";
+
+    FILE* fp = popen(command, "r");
+    if (fp == NULL) {
+        perror("popen");
+        return 0;
+    }
+
+    int numThreads=-1;
+    while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
+        // Parse the output to extract the number of threads
+        printf("%s\n", buffer);
+         if (sscanf(buffer, "CPU(s): %d", &numThreads) == 1) {
+            printf("Number of threads: %d\n", numThreads);
+        }
+    }
+
+    pclose(fp);
+    
+    return numThreads;
+}
