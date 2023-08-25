@@ -29,6 +29,7 @@ int main(int argc, char* argv[]) {
     long long int HsizeA = 0;
     long long int HsizeB = 0;
     int i,j;
+
     for(i=0; i<numEntriesA; i++)
         HsizeA += proteinEntriesA[i].length;
     for(i=0; i<numEntriesB; i++)
@@ -49,14 +50,14 @@ int main(int argc, char* argv[]) {
         for(j=0; j<numEntriesB; j++){
             #ifdef B512
             if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                SWAVX_512_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, -10);
+                SWAVX_512_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
             else
-                SWAVX_512_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, -10);
+                SWAVX_512_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
             #else
             if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, -10);
+                SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
             else
-                SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, -10);
+                SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
             #endif
             start += (proteinEntriesA[i].length+1) * (proteinEntriesB[j].length+1);
         }
@@ -66,7 +67,7 @@ int main(int argc, char* argv[]) {
     double finalTime = omp_get_wtime();
 
     double MeanTime = (finalTime - initialTime)/NumOfTest;
-    printf("\nElapsed time: %f\n", MeanTime);
+    printf("Elapsed time: %f\n", MeanTime);
     printf("GCUPS: %f\n", HsizeA*HsizeB/(1e9*MeanTime));
 
 

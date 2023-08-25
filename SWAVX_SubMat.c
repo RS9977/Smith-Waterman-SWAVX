@@ -35,5 +35,6 @@ int const iBlosum62 [1024] = {
 };
 
 //Defines scores
-int matchScore = 5;
+int matchScore     = 5;
 int missmatchScore = -3;
+int gapscore       = -10; 

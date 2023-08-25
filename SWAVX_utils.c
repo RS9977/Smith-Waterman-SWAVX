@@ -236,14 +236,72 @@ int getNumCPUThreads() {
 
     int numThreads=-1;
     while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
-        // Parse the output to extract the number of threads
-        printf("%s\n", buffer);
-         if (sscanf(buffer, "CPU(s): %d", &numThreads) == 1) {
-            printf("Number of threads: %d\n", numThreads);
-        }
+        sscanf(buffer, "CPU(s): %d", &numThreads);
     }
 
     pclose(fp);
     
     return numThreads;
+}
+
+
+//Load balance of dataset for each threads
+void load_balance(int* chunck_start, int* chunck_num, int* chunck_size, int Hsize, int numEntries, ProteinEntry *proteinEntries, int NumOfThreads){
+    int cnt = 0;
+    int sizeOfChunk = Hsize/NumOfThreads;
+    int temp_size = 0;
+    int temp_temp_size = 0;
+    chunck_start[0] = 0;
+    int temp_i=-1;
+    int i;
+    for(i=0; i<numEntries; i++){
+        temp_size += proteinEntries[i].length;
+        if(temp_size>sizeOfChunk*(cnt+1)){
+            chunck_start[cnt+1] = i+1;
+            chunck_size[cnt] = temp_size - temp_temp_size;
+            chunck_num[cnt]  = i - temp_i;
+            cnt ++;
+            temp_temp_size = temp_size;
+            temp_i = i;
+        }
+        if(cnt==NumOfThreads-1){
+            chunck_size[cnt] = Hsize - temp_temp_size;
+            chunck_num[cnt]  = numEntries-1 -temp_i;
+            break;
+        }
+    }
+}
+
+//Wake Up
+double interval(struct timespec start, struct timespec end)
+{
+  struct timespec temp;
+  temp.tv_sec = end.tv_sec - start.tv_sec;
+  temp.tv_nsec = end.tv_nsec - start.tv_nsec;
+  if (temp.tv_nsec < 0) {
+    temp.tv_sec = temp.tv_sec - 1;
+    temp.tv_nsec = temp.tv_nsec + 1000000000;
+  }
+  return (((double)temp.tv_sec) + ((double)temp.tv_nsec)*1.0e-9);
+}
+
+double wakeup_delay()
+{
+  double meas = 0; int j, i;
+  struct timespec time_start, time_stop;
+  double quasi_random = 0;
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
+  j = 1e8;
+  while (meas < 1.0) {
+    for (i=1; i<j; i++) {
+      /* This iterative calculation uses a chaotic map function, specifically
+         the complex quadratic map (as in Julia and Mandelbrot sets), which is
+         unpredictable enough to prevent compiler optimisation. */
+      quasi_random = quasi_random*quasi_random - 1.923432;
+    }
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_stop);
+    meas = interval(time_start, time_stop);
+    j *= 2; /* Twice as much delay next time, until we've taken 1 second */
+  }
+  return quasi_random;
 }

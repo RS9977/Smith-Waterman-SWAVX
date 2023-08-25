@@ -43,16 +43,16 @@ int main(int argc, char* argv[]) {
     double initialTime = omp_get_wtime();
     
     #ifdef B512
-    SWAVX_512_SeqToSeq_SubMat(a, b, H, P, m, n, NumOfTest, -10);
+    SWAVX_512_SeqToSeq_SubMat(a, b, H, P, m, n, NumOfTest, gapscore);
     #else
-    SWAVX_256_SeqToSeq_SubMat(a, b, H, P, m, n, NumOfTest, -10);
+    SWAVX_256_SeqToSeq_SubMat(a, b, H, P, m, n, NumOfTest, gapscore);
     #endif
     
     //Gets final time
     double finalTime = omp_get_wtime();
 
     double MeanTime = (finalTime - initialTime)/NumOfTest;
-    printf("\nElapsed time: %f\n", MeanTime);
+    printf("Elapsed time: %f\n", MeanTime);
     printf("GCUPS: %f\n", (m-1)*(n-1)/(1e9*MeanTime));
 
     //Frees similarity matrixes
