@@ -94,7 +94,7 @@ void SWAVX_512_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
         }
         ind += max_len;
     } 
-       backtrack(P, maxPos, maxPos_max_len, m, n);
+    //   backtrack(P, maxPos, maxPos_max_len, m, n);
     }
 
     #ifdef DEBUG

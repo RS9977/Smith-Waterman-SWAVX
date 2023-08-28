@@ -21,8 +21,8 @@ int main(int argc, char* argv[]) {
     }
     
     //Allocates a and b
-    a = malloc(m * sizeof(int8_t));
-    b = malloc(n * sizeof(int8_t));
+    a = malloc(m * sizeof(int8_t)+8);
+    b = malloc(n * sizeof(int8_t)+8);
     
     //Because now we have zeros
     m++;
@@ -40,7 +40,8 @@ int main(int argc, char* argv[]) {
     //Gen rand arrays a and b
     generate(a, b, m, n);
 
-    double initialTime = omp_get_wtime();
+    struct timespec time_start, time_stop;
+    clock_gettime(CLOCK_REALTIME, &time_start);
     
     #ifdef B512
     SWAVX_512_SeqToSeq_SubMat(a, b, H, P, m, n, NumOfTest, gapscore);
@@ -49,9 +50,9 @@ int main(int argc, char* argv[]) {
     #endif
     
     //Gets final time
-    double finalTime = omp_get_wtime();
-
-    double MeanTime = (finalTime - initialTime)/NumOfTest;
+    
+    clock_gettime(CLOCK_REALTIME, &time_stop);
+    double MeanTime = interval(time_start, time_stop)/NumOfTest;
     printf("Elapsed time: %f\n", MeanTime);
     printf("GCUPS: %f\n", (m-1)*(n-1)/(1e9*MeanTime));
 

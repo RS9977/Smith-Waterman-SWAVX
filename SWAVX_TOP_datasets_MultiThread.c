@@ -59,8 +59,8 @@ int main(int argc, char* argv[]) {
     int *P;
     P = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(int));
 
-    double initialTime = omp_get_wtime();
-
+    struct timespec time_start, time_stop;
+    clock_gettime(CLOCK_REALTIME, &time_start);
         pthread_t threads[MAX_THREAD];
         WorkerIns thread_data_array[MAX_THREAD];
         int t;
@@ -92,9 +92,8 @@ int main(int argc, char* argv[]) {
 
 
     //Gets final time
-    double finalTime = omp_get_wtime();
-
-    double MeanTime = (finalTime - initialTime)/NumOfTest;
+    clock_gettime(CLOCK_REALTIME, &time_stop);
+    double MeanTime = interval(time_start, time_stop)/NumOfTest;
     printf("Elapsed time: %f\n", MeanTime);
     printf("GCUPS: %f\n", HsizeA*HsizeB/(1e9*MeanTime));
     printf("WakeUpVal: %f\n",wk);

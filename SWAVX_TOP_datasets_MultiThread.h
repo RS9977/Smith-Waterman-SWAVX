@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <time.h>
+
 
 #ifdef B512
 #include "SWAVX_512_Func_SeqToSeq_SubMat.h"
@@ -10,7 +10,7 @@
 #include "SWAVX_256_Func_SeqToSeq_SubMat.h"
 #endif
 
-#define NumOfTest 1e0
+#define NumOfTest 1
 
 typedef struct {
     ProteinEntry *proteinA;

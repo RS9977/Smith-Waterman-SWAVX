@@ -195,9 +195,9 @@ int readProteinDataset(const char *filename, ProteinEntry **proteinEntries, int 
             int lineLength = strlen(line);
             if (lineLength > 0) {
                 if (sequence == NULL) {
-                    sequence = (int8_t *)malloc(lineLength * sizeof(int8_t));
+                    sequence = (int8_t *)malloc(lineLength * sizeof(int8_t)+8);
                 } else {
-                    sequence = (int8_t *)realloc(sequence, (seqLength + lineLength) * sizeof(int8_t));
+                    sequence = (int8_t *)realloc(sequence, (seqLength + lineLength) * sizeof(int8_t)+8);
                 }
                 if (sequence == NULL) {
                     perror("Memory allocation failed");
@@ -291,7 +291,7 @@ double wakeup_delay()
   struct timespec time_start, time_stop;
   double quasi_random = 0;
   clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-  j = 1e8;
+  j = 1e9;
   while (meas < 1.0) {
     for (i=1; i<j; i++) {
       /* This iterative calculation uses a chaotic map function, specifically
