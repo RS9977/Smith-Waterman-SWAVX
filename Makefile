@@ -69,10 +69,14 @@ AVX2_32_MT_datasets:
 
 
 AVX2_WIN:
-	x86_64-w64-mingw32-gcc -O3 SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c SWAVX_utils.c SWAVX_SubMat.c -mavx2 -lpthread -static -o SWAVX.exe -D SUBMAT
+	x86_64-w64-mingw32-gcc -O3 $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lpthread -static -o SWAVX.exe
 AVX2_WIN_BT:
-	x86_64-w64-mingw32-gcc -O3 SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c SWAVX_utils.c SWAVX_SubMat.c -mavx2 -lpthread -static -o SWAVX.exe -D SUBMAT -D BT
+	x86_64-w64-mingw32-gcc -O3 $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lpthread -static -o SWAVX.exe -D BT
 
+AVX2_WIN_SM:
+	x86_64-w64-mingw32-gcc -O3 $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lpthread -static -o SWAVX.exe -D SUBMAT
+AVX2_WIN_SM_BT:
+	x86_64-w64-mingw32-gcc -O3 $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lpthread -static -o SWAVX.exe -D SUBMAT -D BT
 
 clean: 
 	rm SWAVX
