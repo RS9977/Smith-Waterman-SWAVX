@@ -19,6 +19,7 @@ int main(int argc, char* argv[]) {
         filenameB    = argv[2];
         NumOfThreads = strtoll(argv[1], NULL, 10);
     }
+    
 
     //Reading datasets
     ProteinEntry *proteinEntriesA;
@@ -51,6 +52,7 @@ int main(int argc, char* argv[]) {
     int B_chunck_size [MAX_THREAD];
     load_balance(B_chunck_start, B_chunck_num, B_chunck_size, HsizeB, numEntriesB, proteinEntriesB, NumOfThreads);
 
+    
     //Allocates similarity matrix H
     int *H;
     H = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(int));

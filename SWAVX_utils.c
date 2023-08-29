@@ -291,7 +291,7 @@ double wakeup_delay()
   struct timespec time_start, time_stop;
   double quasi_random = 0;
   clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time_start);
-  j = 1e9;
+  j = 1e7;
   while (meas < 1.0) {
     for (i=1; i<j; i++) {
       /* This iterative calculation uses a chaotic map function, specifically

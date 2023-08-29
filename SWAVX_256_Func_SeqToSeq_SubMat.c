@@ -93,8 +93,10 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
             jj ++;
         }
         ind += max_len;
-    } 
-     //  backtrack(P, maxPos, maxPos_max_len, m, n);
+    }   
+       #ifdef BT
+    //   backtrack(P, maxPos, maxPos_max_len, m, n);
+       #endif
     }
 
     #ifdef DEBUG
@@ -128,7 +130,9 @@ void similarityScore(long long int ind, long long int ind_u, long long int ind_d
 
     //Calculates the maximum
     int max = NONE;
+    #ifdef BT
     int pred = NONE;
+    #endif
     /* === Matrix ===
      *      a[0] ... a[n] 
      * b[0]
@@ -146,21 +150,29 @@ void similarityScore(long long int ind, long long int ind_u, long long int ind_d
     
     if (diag > max) { //same letter ↖
         max = diag;
+        #ifdef BT
         pred = DIAGONAL;
+        #endif
     }
 
     if (up > max) { //remove letter ↑ 
         max = up;
+        #ifdef BT
         pred = UP;
+        #endif
     }
     
     if (left > max) { //insert letter ←
         max = left;
+        #ifdef BT
         pred = LEFT;
+        #endif
     }
     //Inserts the value in the similarity and predecessor matrixes
     H[ind] = max;
+    #ifdef BT
     P[ind] = pred;
+    #endif
 
     //Updates maximum score to be used as seed on backtrack 
     if (max > H[*maxPos]) {
@@ -210,7 +222,10 @@ void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__
 
     //Calculates the maximum
    __m256i max  =_mm256_set1_epi32(NONE);
+   #ifdef BT
    __m256i pred =_mm256_set1_epi32(NONE);
+   #endif
+
 
     /* === Matrix ===
      *      a[0] ... a[n] 
@@ -229,21 +244,29 @@ void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__
    //same letter ↖
     mask    = _mm256_cmpgt_epi32(diag, max);
     max     = _mm256_blendv_epi8(max, diag, mask);
+    #ifdef BT
     pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi32(DIAGONAL), mask);
+    #endif
 
     //remove letter ↑ 
     mask    = _mm256_cmpgt_epi32(up, max);
     max     = _mm256_blendv_epi8(max, up, mask);
+    #ifdef BT
     pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi32(UP), mask);
+    #endif
 
     //insert letter ←
     mask    = _mm256_cmpgt_epi32(left, max);
     max     = _mm256_blendv_epi8(max, left, mask);
+    #ifdef BT
     pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi32(LEFT), mask);
+    #endif
 
     //Inserts the value in the similarity and predecessor matrixes
     _mm256_storeu_si256(HH, max);
+    #ifdef BT
     _mm256_storeu_si256(PP, pred);
+    #endif
     
     //Updates maximum score to be used as seed on backtrack 
     __m256i vmax = max;

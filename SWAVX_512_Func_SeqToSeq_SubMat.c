@@ -94,7 +94,9 @@ void SWAVX_512_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
         }
         ind += max_len;
     } 
-    //   backtrack(P, maxPos, maxPos_max_len, m, n);
+       #ifdef BT
+       backtrack(P, maxPos, maxPos_max_len, m, n);
+       #endif
     }
 
     #ifdef DEBUG
@@ -128,7 +130,9 @@ void similarityScore(long long int ind, long long int ind_u, long long int ind_d
 
     //Calculates the maximum
     int max = NONE;
+    #ifdef BT
     int pred = NONE;
+    #endif
     /* === Matrix ===
      *      a[0] ... a[n] 
      * b[0]
@@ -146,21 +150,29 @@ void similarityScore(long long int ind, long long int ind_u, long long int ind_d
     
     if (diag > max) { //same letter ↖
         max = diag;
+        #ifdef BT
         pred = DIAGONAL;
+        #endif
     }
 
     if (up > max) { //remove letter ↑ 
         max = up;
+        #ifdef BT
         pred = UP;
+        #endif
     }
     
     if (left > max) { //insert letter ←
         max = left;
+        #ifdef BT
         pred = LEFT;
+        #endif
     }
     //Inserts the value in the similarity and predecessor matrixes
     H[ind] = max;
+    #ifdef BT
     P[ind] = pred;
+    #endif
 
     //Updates maximum score to be used as seed on backtrack 
     if (max > H[*maxPos]) {
@@ -209,7 +221,9 @@ void similarityScoreIntrinsic(__m512i* HH,__m512i* Hu,__m512i* Hd,__m512i* Hl,__
 
     //Calculates the maximum
     __m512i max  = _mm512_set1_epi32(NONE);
+    #ifdef BT
     __m512i pred = _mm512_set1_epi32(NONE);
+    #endif
 
     /* === Matrix ===
      *      a[0] ... a[n] 
@@ -228,22 +242,30 @@ void similarityScoreIntrinsic(__m512i* HH,__m512i* Hu,__m512i* Hd,__m512i* Hl,__
    //same letter ↖
     mask = _mm512_cmpgt_epi32_mask(max, diag);
     max  = _mm512_mask_mov_epi32(diag, mask, max);
+    #ifdef BT
     pred = _mm512_mask_mov_epi32(_mm512_set1_epi32(DIAGONAL), mask, pred);
+    #endif
 
     //remove letter ↑ 
     mask = _mm512_cmpgt_epi32_mask(max, up);
     max  = _mm512_mask_mov_epi32(up, mask, max);
+    #ifdef BT
     pred = _mm512_mask_mov_epi32(_mm512_set1_epi32(UP), mask, pred);
+    #endif
    
 
     //insert letter ←
     mask = _mm512_cmpgt_epi32_mask(max, left);
     max  = _mm512_mask_mov_epi32(left, mask, max);
+    #ifdef BT
     pred = _mm512_mask_mov_epi32(_mm512_set1_epi32(LEFT), mask, pred);
+    #endif
 
     //Inserts the value in the similarity and predecessor matrixes
     _mm512_storeu_si512(HH, max);
+    #ifdef BT
     _mm512_storeu_si512(PP, pred);
+    #endif
     
     //Updates maximum score to be used as seed on backtrack 
     //Updates maximum score to be used as seed on backtrack 
