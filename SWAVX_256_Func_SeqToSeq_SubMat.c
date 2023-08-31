@@ -1,6 +1,6 @@
 #include "SWAVX_256_Func_SeqToSeq_SubMat.h"
 
-void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int n, int NumOfTest, int gapScore){
+void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int n, int NumOfTest, int gapScore){
 
     //Calculates the similarity matrix
     long long int i, j;
@@ -18,8 +18,16 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
     #endif
 
     
-
+    #ifdef L8
+    int Vsize = 32;
+    __m256i reverseIndices = _mm256_setr_epi32(7, 6, 5, 4, 3, 2, 1, 0);
+    #elif L16
+    int Vsize = 16;
+    __m128i reverseIndices = _mm_setr_epi8(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+    #else
     int Vsize = 8;
+    __m256i reverseIndices = _mm256_setr_epi32(7, 6, 5, 4, 3, 2, 1, 0);
+    #endif
 
     double t;
     int it;
@@ -32,7 +40,8 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
     long long int indul = 1;
     long long int ind_u, ind_d, ind_l; 
    __m256i offset =_mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
-   __m256i reverseIndices = _mm256_setr_epi32(7, 6, 5, 4, 3, 2, 1, 0);
+
+   
     for (i = 2; i < m+n-1; i++) { //Lines
         long long int max_len;
         long long int ii,jj;
@@ -78,7 +87,15 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
         __m256i* PP = (__m256i*) (P+ind+j_start);
         
         for (j=j_start; j <j_end-Vsize+1; j+=Vsize) { //Columns          
-           similarityScoreIntrinsic(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, gapScore, a, b, m, n);
+           
+           #ifdef L8
+           similarityScoreIntrinsic32(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, gapScore, a, b, m, n);
+           #elif L16
+           similarityScoreIntrinsic16(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, gapScore, a, b, m, n);
+           #else
+           similarityScoreIntrinsic32(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, gapScore, a, b, m, n);
+           #endif
+
            ii -= Vsize;
            jj += Vsize;
            Hu++;
@@ -95,7 +112,7 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
         ind += max_len;
     }   
        #ifdef BT
-    //   backtrack(P, maxPos, maxPos_max_len, m, n);
+       backtrack(P, maxPos, maxPos_max_len, m, n);
        #endif
     }
 
@@ -111,9 +128,9 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
 
 }
 
-void similarityScore(long long int ind, long long int ind_u, long long int ind_d, long long int ind_l, long long int ii, long long int jj, int* H, int* P, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int gapScore, int8_t *a, int8_t *b, int m, int n) {
+void similarityScore(long long int ind, long long int ind_u, long long int ind_d, long long int ind_l, long long int ii, long long int jj, INT* H, INT* P, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int gapScore, int8_t *a, int8_t *b, int m, int n) {
 
-    int up, left, diag;
+    INT up, left, diag;
 
     //Get element above
     up   = H[ind_u] + gapScore;
@@ -129,9 +146,9 @@ void similarityScore(long long int ind, long long int ind_u, long long int ind_d
     #endif
 
     //Calculates the maximum
-    int max = NONE;
+    INT max = NONE;
     #ifdef BT
-    int pred = NONE;
+    INT pred = NONE;
     #endif
     /* === Matrix ===
      *      a[0] ... a[n] 
@@ -183,7 +200,7 @@ void similarityScore(long long int ind, long long int ind_u, long long int ind_d
 }  /* End of similarityScore */
 
 
-void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, __m256i reverseIndices, long long int ii, long long int jj, int* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int gapScore, int8_t *a, int8_t *b, int m, int n) {
+void similarityScoreIntrinsic32(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, __m256i reverseIndices, long long int ii, long long int jj, INT* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int gapScore, int8_t *a, int8_t *b, int m, int n) {
 
    __m256i up, left, diag;
 
@@ -208,16 +225,16 @@ void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__
     #ifdef SUBMAT
     __m256i addresses = _mm256_add_epi32(_mm256_mullo_epi32(A, _mm256_set1_epi32(32)), B);
     // Gather the values from the other matrix using the calculated addresses
-    __m256i gatheredData = _mm256_i32gather_epi32((void*) iBlosum62, addresses, sizeof(int ));
-     diag                  =_mm256_add_epi32(HHd, gatheredData);
+    __m256i gatheredData   = _mm256_i32gather_epi32((void*) iBlosum62, addresses, sizeof(int ));
+     diag                  = _mm256_add_epi32(HHd, gatheredData);
 
     #else
             mask           = _mm256_cmpeq_epi32(A, B);
 
-    __m256i MATCHSCORE     =_mm256_set1_epi32(matchScore);
-    __m256i MISSMATCHSCORE =_mm256_set1_epi32(missmatchScore);
+    __m256i MATCHSCORE     = _mm256_set1_epi32(matchScore);
+    __m256i MISSMATCHSCORE = _mm256_set1_epi32(missmatchScore);
     __m256i MATCHMISS      = _mm256_blendv_epi8(MISSMATCHSCORE, MATCHSCORE, mask);
-    diag                   =_mm256_add_epi32(HHd, MATCHMISS);
+    diag                   = _mm256_add_epi32(HHd, MATCHMISS);
     #endif
 
     //Calculates the maximum
@@ -287,11 +304,125 @@ void similarityScoreIntrinsic(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__
 
 }  /* End of similarityScore */
 
+
+void similarityScoreIntrinsic16(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, __m128i reverseIndices, long long int ii, long long int jj, INT* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int gapScore, int8_t *a, int8_t *b, int m, int n) {
+
+   __m256i up, left, diag;
+
+    __m256i HHu = _mm256_loadu_si256(Hu);
+    __m256i HHd = _mm256_loadu_si256(Hd);
+    __m256i HHl = _mm256_loadu_si256(Hl);
+
+    //Get element above
+    up                    =_mm256_add_epi16(HHu,_mm256_set1_epi16(gapScore));
+
+    //Get element on the left
+    left                  =_mm256_add_epi16(HHl,_mm256_set1_epi16(gapScore));
+
+    //Get element on the diagonal
+
+    __m128i input = _mm_loadu_si128((__m128i*)(a+ii-16));
+    input         = _mm_shuffle_epi8(input, reverseIndices);
+    __m256i A     = _mm256_cvtepu8_epi16(input);
+    input         = _mm_loadu_si128((__m128i*)(b+jj-1));
+    __m256i B     = _mm256_cvtepu8_epi16(input);    
+
+    __m256i mask; 
+    #ifdef SUBMAT
+    __m256i addresses = _mm256_add_epi16(_mm256_mullo_epi16(A, _mm256_set1_epi16(32)), B);
+    // Gather the values from the other matrix using the calculated addresses
+    __m256i gatheredData   = _mm256_i32gather_epi32((void*) iBlosum62, addresses, sizeof(int ));
+     diag                  = _mm256_add_epi32(HHd, gatheredData);
+
+    #else
+            mask           = _mm256_cmpeq_epi16(A, B);    
+    __m256i MATCHSCORE     = _mm256_set1_epi16(matchScore);
+    __m256i MISSMATCHSCORE = _mm256_set1_epi16(missmatchScore);
+    __m256i MATCHMISS      = _mm256_blendv_epi8(MISSMATCHSCORE, MATCHSCORE, mask);
+    diag                   = _mm256_add_epi16(HHd, MATCHMISS);
+    #endif
+
+    //Calculates the maximum
+   __m256i max  =_mm256_set1_epi16(NONE);
+   #ifdef BT
+   __m256i pred =_mm256_set1_epi16(NONE);
+   #endif
+
+
+    /* === Matrix ===
+     *      a[0] ... a[n] 
+     * b[0]
+     * ...
+     * b[n]
+     *
+     * generate 'a' from 'b', if '←' insert e '↑' remove
+     * a=GAATTCA
+     * b=GACTT-A
+     * 
+     * generate 'b' from 'a', if '←' insert e '↑' remove
+     * b=GACTT-A
+     * a=GAATTCA
+    */
+   //same letter ↖
+    mask    = _mm256_cmpgt_epi16(diag, max);
+    max     = _mm256_blendv_epi8(max, diag, mask);
+    #ifdef BT
+    pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi16(DIAGONAL), mask);
+    #endif
+
+    //remove letter ↑ 
+    mask    = _mm256_cmpgt_epi16(up, max);
+    max     = _mm256_blendv_epi8(max, up, mask);
+    #ifdef BT
+    pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi16(UP), mask);
+    #endif
+
+    //insert letter ←
+    mask    = _mm256_cmpgt_epi16(left, max);
+    max     = _mm256_blendv_epi8(max, left, mask);
+    #ifdef BT
+    pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi16(LEFT), mask);
+    #endif
+
+    //Inserts the value in the similarity and predecessor matrixes
+    _mm256_storeu_si256(HH, max);
+    #ifdef BT
+    _mm256_storeu_si256(PP, pred);
+    #endif
+    
+
+    __m256i vtmp1;
+    __m256i vtmp2;
+    
+    vtmp1 = _mm256_permute2x128_si256(max, max, 1);
+    vtmp1 = _mm256_max_epi16(vtmp1, max);
+    vtmp2 =  _mm256_permute4x64_epi64(vtmp1, 0x01);
+    vtmp1 = _mm256_max_epi16(vtmp1, vtmp2);
+    vtmp2 = _mm256_permutevar8x32_epi32(vtmp1, _mm256_setr_epi32(1, 0, 0, 0, 0, 0, 0, 0));
+    vtmp1 = _mm256_max_epi16(vtmp1, vtmp2);
+    short int v1 = _mm256_extract_epi16(vtmp1,0);
+    short int v2 = _mm256_extract_epi16(vtmp1,1);
+    v1 = (v1>v2)?v1:v2;
+    __m256i vcmp = _mm256_cmpeq_epi16(_mm256_set1_epi16(v1), max);
+    int max_index = _mm256_movemask_epi8(vcmp);
+    max_index = __builtin_ctz(max_index) >> 1;
+
+
+
+    if (H[ind+max_index] > H[*maxPos]) {
+        *maxPos         = ind+max_index;
+        *maxPos_max_len = max_len;
+    }
+
+}  /* End of similarityScore */
+
+
+
 /*--------------------------------------------------------------------
  * Function:    backtrack
  * Purpose:     Modify matrix to print, path change from value to PATH
  */
-void backtrack(int* P, long long int maxPos, long long int maxPos_max_len, int m, int n) {
+void backtrack(INT* P, long long int maxPos, long long int maxPos_max_len, int m, int n) {
     //hold maxPos value
     long long int predPos;
     long long int predMaxLen;

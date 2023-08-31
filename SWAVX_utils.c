@@ -4,7 +4,7 @@
  * Function:    printMatrix
  * Purpose:     Print Matrix
  */
-void printMatrix(int* matrix, int8_t *a, int8_t *b, int m, int n) {
+void printMatrix(INT* matrix, int8_t *a, int8_t *b, int m, int n) {
     long long int i, j, ind;
     printf(" \t \t");
     for(i=0; i<m-1; i++)
@@ -33,7 +33,7 @@ void printMatrix(int* matrix, int8_t *a, int8_t *b, int m, int n) {
  * Function:    printPredecessorMatrix
  * Purpose:     Print predecessor matrix
  */
-void printPredecessorMatrix(int* matrix, int8_t *a, int8_t *b, int m, int n) {
+void printPredecessorMatrix(INT* matrix, int8_t *a, int8_t *b, int m, int n) {
     long long int i, j, ind;
     printf("    ");
     for(i=0; i<m-1; i++)
@@ -122,7 +122,7 @@ void printPredecessorMatrix(int* matrix, int8_t *a, int8_t *b, int m, int n) {
 
 
 //Saving the Similarity matrix in a file
-void saveInFile (int *H, int8_t *a, int8_t *b, int m, int n){
+void saveInFile (INT *H, int8_t *a, int8_t *b, int m, int n){
     FILE* file = fopen("256_ST_SB.txt", "w");
 
     // Check if the file was opened successfully

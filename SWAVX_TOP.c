@@ -1,5 +1,8 @@
 #include "SWAVX_TOP.h"
 
+
+
+
 int main(int argc, char* argv[]) {
     
     int m, n;
@@ -28,13 +31,18 @@ int main(int argc, char* argv[]) {
     m++;
     n++;
     
-    //Allocates similarity matrix H
-    int *H;
-    H = calloc(m * n, sizeof(int));
+
+    
+    
+    INT *H;
+    H = calloc(m * n, sizeof(INT));
 
     //Allocates predecessor matrix P
-    int *P;
-    P = calloc(m * n, sizeof(int));
+    INT *P;
+    P = calloc(m * n, sizeof(INT));
+    
+
+    
 
 
     //Gen rand arrays a and b

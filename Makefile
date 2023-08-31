@@ -80,3 +80,9 @@ AVX2_WIN_SM_BT:
 
 clean: 
 	rm SWAVX
+
+
+
+
+AVX2_32_D_16:
+	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D DEBUG -D L16 -D BT
