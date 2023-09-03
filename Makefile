@@ -84,5 +84,14 @@ clean:
 
 
 
-AVX2_32_D_16:
+AVX2_16_D:
 	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D DEBUG -D L16 -D BT
+AVX2_16_D_SM:
+	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D DEBUG -D L16 -D BT -D SUBMAT
+
+AVX2_8_D:
+	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D DEBUG -D L8 -D BT
+AVX2_8_D_SM:
+	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D DEBUG -D L8 -D BT -D SUBMAT
+
+
