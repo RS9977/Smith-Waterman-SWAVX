@@ -15,8 +15,8 @@
 typedef struct {
     ProteinEntry *proteinA;
     ProteinEntry *proteinB;
-    int* H;
-    int* P;
+    INT* H;
+    INT* P;
     int  A_num;
     int  B_num;
 } WorkerIns;

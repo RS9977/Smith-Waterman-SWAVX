@@ -36,12 +36,12 @@ int main(int argc, char* argv[]) {
         HsizeB += proteinEntriesB[i].length;
 
     //Allocates similarity matrix H
-    int *H;
-    H = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(int));
+    INT *H;
+    H = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(INT));
 
     //Allocates predecessor matrix P
-    int *P;
-    P = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(int));
+    INT *P;
+    P = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(INT));
 
     struct timespec time_start, time_stop;
     clock_gettime(CLOCK_REALTIME, &time_start);

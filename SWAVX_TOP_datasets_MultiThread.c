@@ -54,12 +54,12 @@ int main(int argc, char* argv[]) {
 
     
     //Allocates similarity matrix H
-    int *H;
-    H = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(int));
+    INT *H;
+    H = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(INT));
 
     //Allocates predecessor matrix P
-    int *P;
-    P = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(int));
+    INT *P;
+    P = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(INT));
 
     struct timespec time_start, time_stop;
     clock_gettime(CLOCK_REALTIME, &time_start);
@@ -124,8 +124,8 @@ void* chunck_computations(void* in){
     WorkerIns *inss = (WorkerIns *) in;
     ProteinEntry *proteinEntriesA = inss -> proteinA;
     ProteinEntry *proteinEntriesB = inss -> proteinB;
-    int* H                        = inss -> H;
-    int* P                        = inss -> P;
+    INT* H                        = inss -> H;
+    INT* P                        = inss -> P;
     int  A_num                    = inss -> A_num;
     int  B_num                    = inss -> B_num;
     long long int start           = 0;

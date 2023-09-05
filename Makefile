@@ -95,3 +95,12 @@ AVX2_8_D_SM:
 	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D DEBUG -D L8 -D BT -D SUBMAT
 
 
+AVX2_16_SM_datasets:
+	gcc -O3 $(src) SWAVX_TOP_datasets.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D L16 -D SUBMAT
+AVX2_16_SM_MT_datasets:
+	gcc -O3 $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lpthread -o SWAVX -D L16 -D SUBMAT
+
+AVX2_8_SM_datasets:
+	gcc -O3 $(src) SWAVX_TOP_datasets.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D L8 -D SUBMAT
+AVX2_8_SM_MT_datasets:
+	gcc -O3 $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lpthread -o SWAVX -D L8 -D SUBMAT
