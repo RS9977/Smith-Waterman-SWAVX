@@ -89,7 +89,7 @@ void printPredecessorMatrix(INT* matrix, int8_t *a, int8_t *b, int m, int n) {
     //Generates the values of a
     long long int i;
     for(i=0;i<m;i++){
-        a[i] = rand()%4;
+        a[i] = rand()%24;
         /*
         int aux=rand()%4;
         if(aux==0)
@@ -105,7 +105,7 @@ void printPredecessorMatrix(INT* matrix, int8_t *a, int8_t *b, int m, int n) {
 
     //Generates the values of b
     for(i=0;i<n;i++){
-        b[i] = rand()%4;
+        b[i] = rand()%24;
         /*
         int aux=rand()%4;
         if(aux==0)
