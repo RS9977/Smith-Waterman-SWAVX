@@ -39,8 +39,9 @@ int main(int argc, char* argv[]) {
 
     //Allocates predecessor matrix P
     INT *P;
+    #ifdef BT
     P = calloc(m * n, sizeof(INT));
-    
+    #endif
 
     
 
