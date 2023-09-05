@@ -20,10 +20,14 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
     
     #ifdef L8
     int Vsize = 32;
+    #ifdef SUBMAT
+    __m128i reverseIndices = _mm_setr_epi8(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+    #else
     __m256i reverseIndices = _mm256_set_epi8(0,   1,  2,  3,  4,  5,  6,  7,
-                                             8,   9, 10, 11, 120, 13, 14, 15,
+                                             8,   9, 10, 11, 12, 13, 14, 15,
                                              16, 17, 18, 19, 20, 21, 22, 23,
                                              24, 25, 26, 27, 28, 29, 30, 31);
+    #endif
     #elif L16
     int Vsize = 16;
     __m128i reverseIndices = _mm_setr_epi8(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
@@ -424,7 +428,7 @@ void similarityScoreIntrinsic16(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,
 
 
 
-void similarityScoreIntrinsic8(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, __m256i reverseIndices, long long int ii, long long int jj, INT* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int gapScore, int8_t *a, int8_t *b, int m, int n) {
+void similarityScoreIntrinsic8(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, RevType reverseIndices, long long int ii, long long int jj, INT* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int gapScore, int8_t *a, int8_t *b, int m, int n) {
 
    __m256i up, left, diag;
 
@@ -454,9 +458,23 @@ void similarityScoreIntrinsic8(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,_
     __m256i highBits         = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(addresses, 1)); 
     __m256i gatheredDataLow  = _mm256_i32gather_epi32((void*) iBlosum62, lowBits,  sizeof(int));
     __m256i gatheredDataHigh = _mm256_i32gather_epi32((void*) iBlosum62, highBits, sizeof(int));
-    __m256i gatheredData     = _mm256_packs_epi32(gatheredDataLow, gatheredDataHigh);
-    gatheredData             = _mm256_permute4x64_epi64(gatheredData, 0xd8);
-     diag                    = _mm256_add_epi16(HHd, gatheredData);
+    __m256i gatheredData1     = _mm256_packs_epi32(gatheredDataLow, gatheredDataHigh);
+    gatheredData1             = _mm256_permute4x64_epi64(gatheredData1, 0xd8);
+    input                     = _mm_loadu_si128((__m128i*)(a+ii-32));
+            input = _mm_shuffle_epi8(input, reverseIndices);
+     A     = _mm256_cvtepu8_epi16(input);
+            input = _mm_loadu_si128((__m128i*)(b+jj+15));
+     B     = _mm256_cvtepu8_epi16(input);    
+     addresses        = _mm256_add_epi16(_mm256_mullo_epi16(A, _mm256_set1_epi16(32)), B);
+     lowBits          = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(addresses, 0));
+     highBits         = _mm256_cvtepi16_epi32(_mm256_extracti128_si256(addresses, 1)); 
+     gatheredDataLow  = _mm256_i32gather_epi32((void*) iBlosum62, lowBits,  sizeof(int));
+     gatheredDataHigh = _mm256_i32gather_epi32((void*) iBlosum62, highBits, sizeof(int));
+    __m256i gatheredData2     = _mm256_packs_epi32(gatheredDataLow, gatheredDataHigh);
+    gatheredData2             = _mm256_permute4x64_epi64(gatheredData2, 0xd8); 
+    __m256i gatheredData     = _mm256_packs_epi16(gatheredData1,gatheredData2);
+     gatheredData             = _mm256_permute4x64_epi64(gatheredData, 0xd8);
+    diag                    = _mm256_add_epi8(HHd, gatheredData);
     #else
     __m256i input = _mm256_loadu_si256((__m256i*)(a+ii-32));
     __m256i A     = _mm256_shuffle_epi8(input, reverseIndices);
@@ -494,21 +512,21 @@ void similarityScoreIntrinsic8(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,_
     mask    = _mm256_cmpgt_epi8(diag, max);
     max     = _mm256_blendv_epi8(max, diag, mask);
     #ifdef BT
-    pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi16(DIAGONAL), mask);
+    pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi8(DIAGONAL), mask);
     #endif
 
     //remove letter ↑ 
     mask    = _mm256_cmpgt_epi8(up, max);
     max     = _mm256_blendv_epi8(max, up, mask);
     #ifdef BT
-    pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi16(UP), mask);
+    pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi8(UP), mask);
     #endif
 
     //insert letter ←
     mask    = _mm256_cmpgt_epi8(left, max);
     max     = _mm256_blendv_epi8(max, left, mask);
     #ifdef BT
-    pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi16(LEFT), mask);
+    pred    = _mm256_blendv_epi8(pred, _mm256_set1_epi8(LEFT), mask);
     #endif
 
     //Inserts the value in the similarity and predecessor matrixes
