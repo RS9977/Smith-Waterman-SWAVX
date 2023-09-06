@@ -114,3 +114,18 @@ AVX2_8_datasets:
 	gcc -O3 $(src) SWAVX_TOP_datasets.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D L8
 AVX2_8_MT_datasets:
 	gcc -O3 $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lpthread -o SWAVX -D L8
+
+
+
+CFLAGS = -O3 -mavx2 -lpthread
+
+# Get VARs from the user as a space-separated list
+override VAR += $(filter-out $@,$(MAKECMDGOALS))
+
+# Check if VAR is defined, and if so, add it to CFLAGS
+ifdef VAR
+CFLAGS += $(foreach var,$(VAR),-D $(var))
+endif
+
+AVX2:
+	gcc $(CFLAGS) $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c -o SWAVX
