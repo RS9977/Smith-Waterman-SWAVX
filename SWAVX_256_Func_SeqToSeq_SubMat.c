@@ -86,7 +86,9 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
             else
                 ind_d = ind - (max_len<<1);
         }  
-       
+       #ifndef SAVEHP
+       *(H+ind_u+j_start) = 0;
+       #endif
         __m256i* Hu = (__m256i*) (H+ind_u+j_start);
         __m256i* Hl = (__m256i*) (H+ind_l+j_start);
         __m256i* Hd = (__m256i*) (H+ind_d+j_start);

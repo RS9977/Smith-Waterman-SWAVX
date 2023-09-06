@@ -55,12 +55,20 @@ int main(int argc, char* argv[]) {
     
     //Allocates similarity matrix H
     INT *H;
+    #ifdef SAVEHP
     H = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(INT));
+    #else
+    H = calloc(NumOfThreads*MaxHSize, sizeof(INT));
+    #endif
 
     //Allocates predecessor matrix P
     INT *P;
     #ifdef BT
+    #ifdef SAVEHP
     P = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(INT));
+    #else
+    P = calloc(NumOfThreads*MaxHSize, sizeof(INT));
+    #endif
     #endif
 
     struct timespec time_start, time_stop;
@@ -86,7 +94,11 @@ int main(int argc, char* argv[]) {
                 printf("ERROR; return code from pthread_create() is %d\n", rc);
                 exit(-1);
             }
+            #ifdef SAVEHP
             start += (HsizeA+numEntriesA) * (B_chunck_size[t]+B_chunck_num[t]);
+            #else
+            start += MaxHSize;
+            #endif
         }
         
         for (t = 0; t<NumOfThreads; t++) {
@@ -135,36 +147,54 @@ void* chunck_computations(void* in){
     #endif
     int  A_num                    = inss -> A_num;
     int  B_num                    = inss -> B_num;
+    #ifdef SAVEHP
     long long int start           = 0;
+    #endif
     int  i,j;
     for(i=0; i<A_num; i++){
         for(j=0; j<B_num; j++){
             #ifdef B512
-                #ifdef BT
-                if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
-                else
-                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
+                #if SAVEHP
+                    #ifdef BT
+                    if(proteinEntriesA[i].length > proteinEntriesB[j].length)
+                        SWAVX_512_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
+                    else
+                        SWAVX_512_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
+                    #else
+                    if(proteinEntriesA[i].length > proteinEntriesB[j].length)
+                        SWAVX_512_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
+                    else
+                        SWAVX_512_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
+                    #endif
                 #else
                 if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
+                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
                 else
-                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
+                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
                 #endif
             #else
-                #ifdef BT
-                if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
-                else
-                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
+                #ifdef SAVEHP
+                    #ifdef BT
+                    if(proteinEntriesA[i].length > proteinEntriesB[j].length)
+                        SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
+                    else
+                        SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
+                    #else
+                    if(proteinEntriesA[i].length > proteinEntriesB[j].length)
+                        SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
+                    else
+                        SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
+                    #endif
                 #else
                 if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
+                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
                 else
-                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
+                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
                 #endif
             #endif
+            #ifdef SAVEHP
             start += (proteinEntriesA[i].length+1) * (proteinEntriesB[j].length+1);
+            #endif
         }
     }
 }

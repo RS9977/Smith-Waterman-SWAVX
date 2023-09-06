@@ -10,7 +10,8 @@
 #include "SWAVX_256_Func_SeqToSeq_SubMat.h"
 #endif
 
-#define NumOfTest 1
+#define NumOfTest 1e0
+#define MaxHSize 1e8
 
 typedef struct {
     ProteinEntry *proteinA;
