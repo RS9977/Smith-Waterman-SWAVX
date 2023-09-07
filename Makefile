@@ -10,7 +10,7 @@ AVX2_32_SM_datasets:
 	gcc -O3 $(src) SWAVX_TOP_datasets.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D SUBMAT
 
 AVX2_32_D:
-	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D DEBUG
+	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D DEBUG -D BT
 AVX2_32:
 	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX
 

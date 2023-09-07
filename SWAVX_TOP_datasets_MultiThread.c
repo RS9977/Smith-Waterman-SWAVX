@@ -54,11 +54,11 @@ int main(int argc, char* argv[]) {
 
     
     //Allocates similarity matrix H
-    INT *H;
+    //INT *H;
     #ifdef SAVEHP
-    H = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(INT));
+    INT *H = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(INT));
     #else
-    H = calloc(NumOfThreads*MaxHSize, sizeof(INT));
+    INT *H = calloc(NumOfThreads*MaxHSize, sizeof(INT));
     #endif
 
     //Allocates predecessor matrix P
@@ -69,10 +69,13 @@ int main(int argc, char* argv[]) {
     #else
     P = calloc(NumOfThreads*MaxHSize, sizeof(INT));
     #endif
+    #else
+    P = calloc(1, sizeof(INT));
     #endif
 
     struct timespec time_start, time_stop;
     clock_gettime(CLOCK_REALTIME, &time_start);
+        for(int kk=0; kk<1; kk++){
         pthread_t threads[MAX_THREAD];
         WorkerIns thread_data_array[MAX_THREAD];
         int t;
@@ -106,6 +109,7 @@ int main(int argc, char* argv[]) {
                 printf("ERROR; code on return from join is %d\n", rc);
                 exit(-1);
             }
+        }
         }
 
 

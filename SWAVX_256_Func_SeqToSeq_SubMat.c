@@ -62,6 +62,10 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
             ind_d   = ind - (max_len<<1) + 2;
             ii = i-j_start;
             jj = j_start;
+            #ifndef SAVEHP
+            *(H+ind) = 0;
+            *(H+ind+max_len-1) = 0;
+            #endif
         }
 	    else if (i>=m){
 		    max_len = m+n-1-i;
@@ -81,14 +85,15 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
             ind_l     = ind - max_len;
             ii = i-j_start;
             jj = j_start; 
+            #ifndef SAVEHP
+            *(H+ind) = 0;
+            #endif
             if(i>n)
                 ind_d = ind - (max_len<<1) - 1;
             else
                 ind_d = ind - (max_len<<1);
         }  
-       #ifndef SAVEHP
-       *(H+ind_u+j_start) = 0;
-       #endif
+      
         __m256i* Hu = (__m256i*) (H+ind_u+j_start);
         __m256i* Hl = (__m256i*) (H+ind_l+j_start);
         __m256i* Hd = (__m256i*) (H+ind_d+j_start);
@@ -216,6 +221,7 @@ void similarityScoreIntrinsic32(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,
     __m256i HHu = _mm256_loadu_si256(Hu);
     __m256i HHd = _mm256_loadu_si256(Hd);
     __m256i HHl = _mm256_loadu_si256(Hl);
+    
 
     //Get element above
     up                    =_mm256_add_epi32(HHu,_mm256_set1_epi32(gapScore));

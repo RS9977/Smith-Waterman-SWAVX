@@ -35,7 +35,18 @@ int main(int argc, char* argv[]) {
     
     
     INT *H;
-    H = calloc(m * n, sizeof(INT));
+    H = malloc(m * n* sizeof(INT));
+
+    *(H) = 0;
+    *(H+1) = 0;
+    *(H+2) = 0;
+    
+
+    for(int k=3; k<m*n; k++){
+        *(H+k) = 100;
+    }
+
+
 
     //Allocates predecessor matrix P
     INT *P;

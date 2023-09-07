@@ -89,7 +89,7 @@ void printPredecessorMatrix(INT* matrix, int8_t *a, int8_t *b, int m, int n) {
     //Generates the values of a
     long long int i;
     for(i=0;i<m;i++){
-        a[i] = rand()%24;
+        a[i] = rand()%4;
         /*
         int aux=rand()%4;
         if(aux==0)
@@ -105,7 +105,7 @@ void printPredecessorMatrix(INT* matrix, int8_t *a, int8_t *b, int m, int n) {
 
     //Generates the values of b
     for(i=0;i<n;i++){
-        b[i] = rand()%24;
+        b[i] = rand()%4;
         /*
         int aux=rand()%4;
         if(aux==0)
@@ -195,9 +195,9 @@ int readProteinDataset(const char *filename, ProteinEntry **proteinEntries, int 
             int lineLength = strlen(line);
             if (lineLength > 0) {
                 if (sequence == NULL) {
-                    sequence = (int8_t *)malloc(lineLength * sizeof(int8_t)+8);
+                    sequence = (int8_t *)malloc(lineLength * sizeof(int8_t)+16);
                 } else {
-                    sequence = (int8_t *)realloc(sequence, (seqLength + lineLength) * sizeof(int8_t)+8);
+                    sequence = (int8_t *)realloc(sequence, (seqLength + lineLength) * sizeof(int8_t)+16);
                 }
                 if (sequence == NULL) {
                     perror("Memory allocation failed");
