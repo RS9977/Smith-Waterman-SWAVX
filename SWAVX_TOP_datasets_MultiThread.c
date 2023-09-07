@@ -62,15 +62,15 @@ int main(int argc, char* argv[]) {
     #endif
 
     //Allocates predecessor matrix P
-    INT *P;
+    
     #ifdef BT
     #ifdef SAVEHP
-    P = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(INT));
+    INT *P = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(INT));
     #else
-    P = calloc(NumOfThreads*MaxHSize, sizeof(INT));
+    INT *P = calloc(NumOfThreads*MaxHSize, sizeof(INT));
     #endif
     #else
-    P = calloc(1, sizeof(INT));
+    INT *P = calloc(1, sizeof(INT));
     #endif
 
     struct timespec time_start, time_stop;
