@@ -70,7 +70,6 @@ int main(int argc, char* argv[]) {
     #endif
     
     //Gets final time
-    
     clock_gettime(CLOCK_REALTIME, &time_stop);
     double MeanTime = interval(time_start, time_stop)/NumOfTest;
     printf("Elapsed time: %f\n", MeanTime);
