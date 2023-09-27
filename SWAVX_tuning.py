@@ -8,8 +8,9 @@ import time
 import math
 import numpy as np
 import pickle
+import glob
 
-def parse_gcc_params(output, best_param, i, numIter, alpha=10, beta=30):
+def parse_gcc_params(output, best_param, i, numIter, alpha=15, beta=30):
     params = {}
     param_pattern = r"--param=([\w-]+)=<(-?\d+),(-?\d+)>"
     exceptions_param = ['lazy-modules', 'logical-op-non-short-circuit', 'ranger-debug']
@@ -19,10 +20,10 @@ def parse_gcc_params(output, best_param, i, numIter, alpha=10, beta=30):
             a = int(match.group(2))
             b = int(match.group(3))
             # Initialize parameter with a random value within the specified range
-            if param_name not in best_param or random.randint(0, 100)<alpha:
+            if param_name not in best_param or random.randint(0, 100)<(alpha*(random.random())):
                 params[param_name] = random.randint(a, b)
             else:
-                value = random.randint(-1, 1)*math.floor(math.exp(-3*i/numIter)*(b-a)/beta) + best_param[param_name] 
+                value = random.randint(-1, 1)*math.floor(math.exp(-3*i/numIter)*(random.random())*(b-a)/beta) + best_param[param_name] 
                 if value > a and value < b:
                     params[param_name] = value
                 else:
@@ -36,7 +37,7 @@ def parse_gcc_params(output, best_param, i, numIter, alpha=10, beta=30):
             possible_values = match.group(2).split('|')
             # Choose a random value from the list of possible values
             if param_name not in params:
-                if param_name not in best_param or random.randint(0, 100)<math.floor(math.exp(-3*i/numIter)*(alpha)):
+                if param_name not in best_param or random.randint(0, 100)<math.floor(math.exp(-3*i/numIter)*(alpha)*(random.random())):
                     params[param_name] = random.choice(possible_values)
                 else:
                     params[param_name] = best_param[param_name]
@@ -49,12 +50,12 @@ def parse_gcc_params(output, best_param, i, numIter, alpha=10, beta=30):
         if param_name not in exceptions_param:
             # Check if the parameter has already been assigned a value from param_pattern
             if param_name not in params:
-                if param_name not in best_param or random.randint(0, 100)<alpha:
+                if param_name not in best_param or random.randint(0, 100)<(alpha*(random.random())):
                     params[param_name] = random.randint(0, 100000)
                 else:
                     if isinstance(best_param[param_name] , str):
                         print(best_param[param_name])
-                    value = random.randint(-1, 1)*math.floor(math.exp(-3*i/numIter)*(b-a)/beta) + best_param[param_name] 
+                    value = random.randint(-1, 1)*math.floor(math.exp(-3*i/numIter)*(random.random())*(100000)/beta) + best_param[param_name] 
                     if value > 0 and value < 100000:
                         params[param_name] = value
                     else:
@@ -62,55 +63,44 @@ def parse_gcc_params(output, best_param, i, numIter, alpha=10, beta=30):
 
     return params
 
-def compile_with_gcc(gcc_params, selected_indices, i=-1, CorGorI=2):
+def compile_with_gcc(gcc_params, selected_indices, opt, i=-1, CorGorI=2, output_binary="SWAVX_tuned"):
     try:
         # Build the GCC command with parameters
         
         if i>-1:
             param_cnt = 0
-            if CorGorI == 1:
-                gcc_command = ["gcc", "-O3", "-mavx2", "-D", "SUBMAT", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", "SWAVX"]
-            else:
-                gcc_command = ["gcc", "-O3", "-mavx2", "-D", "SUBMAT", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-S"]
-            #gcc_command = ["make", "AVX2_PAR", "VAR=L8 SUBMAT", "PAR="]
+            
+            gcc_command1 = ["gcc", opt, "-mavx2", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", output_binary]
+            gcc_command2 = ["gcc", opt, "-mavx2", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-S"]
+            
             for param_name, param_value in gcc_params.items():
                 if param_cnt not in selected_indices:
                     continue
                 param_cnt += 1
-                gcc_command.append(f"--param={param_name}={param_value}")
+                gcc_command1.append(f"--param={param_name}={param_value}")
+                gcc_command2.append(f"--param={param_name}={param_value}")
             
             # Run GCC to compile the program
-            subprocess.check_call(gcc_command)
-            '''
-            if CorGorI == 1:
-                print(f"Compilation {i} successful. Binary SWAVX generated.")
-            else:
-                print(f"Compilation {i} successful. Assemblies generated.")
-            '''
+            subprocess.check_call(gcc_command1)
+            subprocess.check_call(gcc_command2)
             return 1
         else:
             param_cnt = 0
-            gcc_command = ["gcc", "-O3", "-mavx2", "-D", "SUBMAT", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", "SWAVX"]
-            #gcc_command = ["make", "AVX2_PAR", "VAR=L8 SUBMAT", "PAR="]
+            
+            gcc_command1 = ["gcc", opt, "-mavx2", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", output_binary]
+            gcc_command2 = ["gcc", opt, "-mavx2", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-S"]
+            
             for param_name, param_value in gcc_params.items():
                 if param_cnt not in selected_indices:
                     continue
                 param_cnt += 1
-                gcc_command.append(f"--param={param_name}={param_value}")
+                gcc_command1.append(f"--param={param_name}={param_value}")
+                gcc_command2.append(f"--param={param_name}={param_value}")
             
             # Run GCC to compile the program
-            subprocess.check_call(gcc_command)
-            param_cnt = 0
-            gcc_command = ["gcc", "-O3", "-mavx2", "-D", "SUBMAT", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-S"]
-            #gcc_command = ["make", "AVX2_PAR", "VAR=L8 SUBMAT", "PAR="]
-            for param_name, param_value in gcc_params.items():
-                if param_cnt not in selected_indices:
-                    continue
-                param_cnt += 1
-                gcc_command.append(f"--param={param_name}={param_value}")
+            subprocess.check_call(gcc_command1)
+            subprocess.check_call(gcc_command2)
             
-            # Run GCC to compile the program
-            subprocess.check_call(gcc_command)
             print("Compilation successful. Binary SWAVX and assemblies generated.")
             return 1
 
@@ -213,12 +203,25 @@ def count_instructions_in_directory(directory):
         print(f"Directory '{directory}' not found.")
         return {}, 0
 
+def are_lists_identical(list1, list2):
+    for list2e in list2:
+        if len(list1) != len(list2e):
+            continue
+        for i in range(len(list1)):
+            if list1[i] != list2e[i]:
+                continue
+            if i == len(list1)-1:
+                return True 
+    return False
+
+
 def get_asm_info(input_directory):
     throughput_dict = {}
 
     # Find all "*.s" files in the input directory
-    #s_files = glob.glob(input_directory + "/*.s")
-    s_files = ['./SWAVX_256_Func_SeqToSeq_SubMat.s']
+    s_files = glob.glob(input_directory + "/*.s")
+    #s_files = ['./SWAVX_256_Func_SeqToSeq_SubMat.s']
+    s_files.remove('./SWAVX_SubMat.s')
     for s_file in s_files:
         command = f"llvm-mca {s_file}"
         
@@ -228,16 +231,17 @@ def get_asm_info(input_directory):
             print(f"Error running the command for {s_file}: {e}")
             continue
 
+        #pattern = r"Total Cycles:\s+(\d+)"
         pattern = r"Total Cycles:\s+(\d+)"
         match = re.search(pattern, output)
 
         if match:
-            throughput = float(match.group(1))
+            throughput = int(match.group(1))
             throughput_dict[s_file] = throughput
         else:
             print(f"Pattern not found in the command output for {s_file}")
 
-    return throughput_dict[s_files[0]]
+    return list(throughput_dict.values())
 
 def save_dictionary_to_file(dictionary, filename):
     with open(filename, 'wb') as file:
@@ -248,28 +252,73 @@ def load_dictionary_from_file(filename):
         dictionary = pickle.load(file)
     return dictionary
 
-
-
-def main(CorGorI, numPar, numOutIter, numIter, numTest):
+def get_size_info(binary_name):
+    command = f"ls -la | grep  rwxr-xr-x.*{binary_name}"
+        
     try:
-        print('Without Tuning:')        
+        output = subprocess.check_output(command, shell=True, text=True, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running the command for {binary_name}: {e}")
+
+    #pattern = r"Total Cycles:\s+(\d+)"
+    pattern = r'\s+reza\s+(\d+)\s+Sep\s+'
+    match = re.search(pattern, output)
+
+    if match:
+        Size = int(match.group(1))
+        return Size
+    else:
+        print(f"Pattern not found in the command output for {s_file}")
+
+
+def main(CorGorI=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads=32, alpha=30, beta=50, Par_Val=0, output_binary = "SWAVX_tuned"):
+    
+    print(f"Result calculated for\talpha: {alpha},\tbeta: {beta},\tnumIter:{numIter},\tnumPar: {numPar},\tnumTest: {numTest}\tnumThreads: {NumOfThreads}")
+    print("---------------------------------------------\n")
+    try:
+                
         try:
-            [gcc_params_min,selected_indices_min] = load_dictionary_from_file('Par_Val')
+            if Par_Val:
+                [gcc_params_min,selected_indices_min, cycles_pre] = load_dictionary_from_file('Par_Val')
+            else:
+                selected_indices_min   = []
+                gcc_params_min         = {}
+                cycles_pre             = []
         except:
             selected_indices_min   = []
             gcc_params_min         = {}
-        compile_with_gcc(gcc_params_min, selected_indices_min, -1, CorGorI)    
-        GCUPS_max = get_gcups_from_command("./SWAVX", numTest)
+            cycles_pre             = []
+        compile_with_gcc(gcc_params_min, selected_indices_min, "-O3", -1, CorGorI, output_binary=output_binary)    
+        GCUPS_max_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*5)
+        GCUPS_max = get_gcups_from_command(f"./{output_binary} 1", numTest*10)
+        GCUPS_max_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*10)
         cycles_min = get_asm_info('./')
         instruction_count, total_instructions_min = count_instructions_in_directory('./')
-        print(f"Initial GCUPS : {GCUPS_max}")
+        cycles_min.append(total_instructions_min)
+        Size_min   = get_size_info(output_binary)
+        
+        print('Without Tuning:')
+        print(f"Initial GCUPS : {GCUPS_max:.4f}")
+        print(f"Initial GCUPS main: {GCUPS_max_main:.4f}")
         print(f"Initial total Instructions: {total_instructions_min}")
         print(f"Initial cycles: {cycles_min}")
+        print("---------------------------------------------\n")
+        print("Tuning...")
+
+        cycles_min.append(total_instructions_min)
+        if len(cycles_pre)==0:
+            cycles_pre = [cycles_min]
+        total_instructions_pre = total_instructions_min
+        same_cnt = 0
+        #GCUPS_max = 0
         #gcc_command = ["gcc", "-O3", "-mavx2", "-D", "SUBMAT", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", "SWAVX"]
         #subprocess.check_call(gcc_command)
         #GCUPS_max = get_gcups_from_command('./SWAVX',numTest)
-        for j in range(numOutIter):
-            print(f"j: {j}")
+        
+        j = -1
+        while same_cnt < numStop*numIter:
+            j += 1
+            print(f"(j: {j}), Explored space: {len(cycles_pre)}, Repetitions: {same_cnt}", end="\r")
             for i in range(numIter):
                 '''
                 if j==numOutIter-1:
@@ -279,7 +328,7 @@ def main(CorGorI, numPar, numOutIter, numIter, numTest):
                 output = subprocess.check_output(["gcc", "--help=params"], stderr=subprocess.STDOUT, universal_newlines=True)
                 # Parse the output to extract parameter names and descriptions
                 
-                gcc_params = parse_gcc_params(output, gcc_params_min, i, numIter)
+                gcc_params = parse_gcc_params(output, gcc_params_min, i, numIter, alpha=alpha, beta=beta)
 
 
                 #for i in range(100):
@@ -287,7 +336,7 @@ def main(CorGorI, numPar, numOutIter, numIter, numTest):
                 selected_indices = random.sample(range(0, 270), numPar)
                 selected_indices.sort()
                 # Use apply_async to run the function in a separate process
-                result = pool.apply_async(compile_with_gcc, (gcc_params, selected_indices, i, CorGorI))
+                result = pool.apply_async(compile_with_gcc, (gcc_params, selected_indices, "-O3", i, CorGorI, output_binary))
 
                 result_value = 0
                 try:
@@ -305,14 +354,27 @@ def main(CorGorI, numPar, numOutIter, numIter, numTest):
                 pool.join()
 
                 if result_value:
-                    if CorGorI == 2:
-                        gcups = get_gcups_from_command("./SWAVX", numTest)
-                        if GCUPS_max < gcups:
-                            print(i, 'of',j, ':= ', GCUPS_max, '->',gcups)
-                            GCUPS_max = gcups
-                            gcc_params_min = gcc_params
-                            selected_indices_min = selected_indices
-                            save_dictionary_to_file([gcc_params_min,selected_indices_min],'Par_Val_temp')
+                    if CorGorI == 1:
+                        cycles = get_asm_info('./')
+                        instruction_count, total_instructions = count_instructions_in_directory('./')
+                        cycles.append(total_instructions)
+                        same_cnt += 1
+                        if not are_lists_identical(cycles,cycles_pre):
+                            same_cnt = 0
+                            cycles_pre.append(cycles)
+                            gcups = get_gcups_from_command(f"./{output_binary} 1", numTest)
+                            if (gcups-GCUPS_max)/GCUPS_max>0.005:
+                                gcups_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*10)
+                                if  gcups_main > GCUPS_max_main:
+                                    gcups = get_gcups_from_command(f"./{output_binary} 1", numTest*10)
+                                    if gcups > GCUPS_max:
+                                        print(f"(j: {j}, i: {i}),   {cycles} :=>\t({GCUPS_max:.4f} -> {gcups:.4f}),\t({GCUPS_max_main:.4f} -> {gcups_main:.4f})")
+                                        GCUPS_max = gcups
+                                        GCUPS_max_main = gcups_main
+                                        gcc_params_min = gcc_params
+                                        selected_indices_min = selected_indices
+                                        save_dictionary_to_file([gcc_params_min,selected_indices_min, cycles_pre],'Par_Val_temp')
+
                             
                     elif CorGorI == 2:
                         instruction_count, total_instructions = count_instructions_in_directory('./')
@@ -321,28 +383,42 @@ def main(CorGorI, numPar, numOutIter, numIter, numTest):
                             total_instructions_min = total_instructions
                             gcc_params_min = gcc_params
                             selected_indices_min = selected_indices
-                            save_dictionary_to_file([gcc_params_min,selected_indices_min],'Par_Val_temp')
+                            save_dictionary_to_file([gcc_params_min,selected_indices_min, cycles_pre],'Par_Val_temp')
+
+                    elif CorGorI == 3:
+                        size = get_size_info("SWAVX_tuned")
+                        if size < Size_min:
+                            print(i,'of',j, ':= ', Size_min, '->',size)
+                            Size_min = size
+                            gcc_params_min = gcc_params
+                            selected_indices_min = selected_indices
+                            save_dictionary_to_file([gcc_params_min,selected_indices_min, cycles_pre],'Par_Val_temp')
                     else:
                         cycles = get_asm_info('./')
-                        if cycles < cycles_min:
+                        if cycles[1] < cycles_min[1]:
                             print(i,'of',j, ':= ', cycles_min, '->',cycles)
                             cycles_min = cycles
                             gcc_params_min = gcc_params
                             selected_indices_min = selected_indices
-                            save_dictionary_to_file([gcc_params_min,selected_indices_min],'Par_Val_temp')
-        
+                            save_dictionary_to_file([gcc_params_min,selected_indices_min, cycles_pre],'Par_Val_temp')
+        print("---------------------------------------------\n")
         print('With Tuning:')
-        compile_with_gcc(gcc_params_min, selected_indices_min, -1, CorGorI)    
-        GCUPS_max = get_gcups_from_command("./SWAVX", numTest)
+        compile_with_gcc(gcc_params_min, selected_indices_min, "-O3", -1, CorGorI, output_binary=output_binary)    
+        GCUPS_max = get_gcups_from_command(f"./{output_binary} 1", numTest*10)
         cycles_min = get_asm_info('./')
         instruction_count, total_instructions_min = count_instructions_in_directory('./')
-        print(f"Final GCUPS : {GCUPS_max}")
+        cycles_min.append(total_instructions_min)
+        GCUPS_max_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*10)
+        print(f"Final GCUPS : {GCUPS_max:.4f}")
+        print(f"Final GCUPS main: {GCUPS_max_main:.4f}")
         print(f"Final total Instructions: {total_instructions_min}")
         print(f"Final cycles: {cycles_min}")
-        save_dictionary_to_file([gcc_params_min,selected_indices_min],'Par_Val')
+
+        print("Size of the solution space: ", len(cycles_pre))
+        save_dictionary_to_file([gcc_params_min,selected_indices_min, cycles_pre],'Par_Val')
     except subprocess.CalledProcessError as e:
         print("Error running 'gcc --help=params':")
         print(e.output)
 
 if __name__ == "__main__":
-    main(0, 265, 5, 150, 100)
+    main(CorGorI=1, numPar=260, numStop=4, numIter=50, numTest=5, NumOfThreads=32, alpha=20, beta=20, Par_Val=0, output_binary = "SWAVX_tuned")

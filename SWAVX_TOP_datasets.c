@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
     
     ProteinEntry *proteinEntriesA;
     int numEntriesA;
-    if (!readProteinDataset(filenameA, &proteinEntriesA, &numEntriesA)) {
+    if (!readProteinDataset(filenameA, &proteinEntriesA, &numEntriesA, 5e2)) {
         printf("Unable to read the file: %s\n",filenameA);
         return 0;        
     }
@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
 
     ProteinEntry *proteinEntriesB;
     int numEntriesB;
-    if (!readProteinDataset(filenameB, &proteinEntriesB, &numEntriesB)) {
+    if (!readProteinDataset(filenameB, &proteinEntriesB, &numEntriesB, 1e7)) {
         printf("Unable to read the file: %s\n",filenameB);
         return 0;        
     }
