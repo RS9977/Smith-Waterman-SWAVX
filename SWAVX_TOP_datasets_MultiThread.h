@@ -11,7 +11,7 @@
 #endif
 
 #define NumOfTest 1e0
-#define MaxHSize 3e7
+//#define MaxHSize 3e7
 
 typedef struct {
     ProteinEntry *proteinA;

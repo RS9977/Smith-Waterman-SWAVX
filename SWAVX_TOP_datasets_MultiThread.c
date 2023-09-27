@@ -40,11 +40,20 @@ int main(int argc, char* argv[]) {
     long long int HsizeA = 0;
     long long int HsizeB = 0;
     int i,j;
+    
+    int max_sizeA = 0;
+    int max_SizeB = 0;
 
-    for(i=0; i<numEntriesA; i++)
+    for(i=0; i<numEntriesA; i++){
         HsizeA += proteinEntriesA[i].length;
-    for(i=0; i<numEntriesB; i++)
+        if (proteinEntriesA[i].length > max_sizeA)
+            max_sizeA = proteinEntriesA[i].length;
+    }
+    for(i=0; i<numEntriesB; i++){
         HsizeB += proteinEntriesB[i].length;
+        if (proteinEntriesB[i].length > max_SizeB)
+            max_SizeB = proteinEntriesB[i].length;
+    }
     
     //Load balancing
     int B_chunck_start[MAX_THREAD];
@@ -52,7 +61,8 @@ int main(int argc, char* argv[]) {
     int B_chunck_size [MAX_THREAD];
     load_balance(B_chunck_start, B_chunck_num, B_chunck_size, HsizeB, numEntriesB, proteinEntriesB, NumOfThreads);
 
-    
+    int MaxHSize = (max_sizeA+2)*(max_SizeB+2);
+    printf("MaxSize: %d\n", MaxHSize);
     //Allocates similarity matrix H
     //INT *H;
     #ifdef SAVEHP

@@ -167,7 +167,7 @@ int readProteinDataset(const char *filename, ProteinEntry **proteinEntries, int 
     }
 
     int maxEntries = 1000; // Initial capacity, can be adjusted
-    *proteinEntries = (ProteinEntry *)malloc(maxEntries * sizeof(ProteinEntry));
+    *proteinEntries = (ProteinEntry *)malloc(maxEntries * sizeof(ProteinEntry)+16);
     if (*proteinEntries == NULL) {
         perror("Memory allocation failed");
         fclose(file);
