@@ -261,14 +261,14 @@ def get_size_info(binary_name):
         print(f"Error running the command for {binary_name}: {e}")
 
     #pattern = r"Total Cycles:\s+(\d+)"
-    pattern = r'\s+reza\s+(\d+)\s+Sep\s+'
+    pattern = r'\s+caad\s+(\d+)\s+Sep\s+'
     match = re.search(pattern, output)
 
     if match:
         Size = int(match.group(1))
         return Size
     else:
-        print(f"Pattern not found in the command output for {s_file}")
+        print(f"Pattern not found in the command output for {binary_name}")
 
 
 def main(CorGorI=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads=32, alpha=30, beta=50, Par_Val=0, output_binary = "SWAVX_tuned"):
@@ -295,7 +295,11 @@ def main(CorGorI=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads=3
         cycles_min = get_asm_info('./')
         instruction_count, total_instructions_min = count_instructions_in_directory('./')
         cycles_min.append(total_instructions_min)
-        Size_min   = get_size_info(output_binary)
+        try:
+            Size_min   = get_size_info(output_binary)
+        except:
+            print("Change the date and user in get_size_info")
+            Size_min = 0
         
         print('Without Tuning:')
         print(f"Initial GCUPS : {GCUPS_max:.4f}")
