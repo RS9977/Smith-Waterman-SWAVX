@@ -17,14 +17,14 @@ int main(int argc, char* argv[]) {
     else if(argc>2){
         filenameA    = argv[1];
         filenameB    = argv[2];
-        NumOfThreads = strtoll(argv[1], NULL, 10);
+        NumOfThreads = strtoll(argv[3], NULL, 10);
     }
     
 
     //Reading datasets
     ProteinEntry *proteinEntriesA;
     int numEntriesA;
-    if (!readProteinDataset(filenameA, &proteinEntriesA, &numEntriesA)) {
+    if (!readProteinDataset(filenameA, &proteinEntriesA, &numEntriesA, 5e2)) {
         printf("Unable to read the file: %s\n",filenameA);
         return 0;        
     }
@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
 
     ProteinEntry *proteinEntriesB;
     int numEntriesB;
-    if (!readProteinDataset(filenameB, &proteinEntriesB, &numEntriesB)) {
+    if (!readProteinDataset(filenameB, &proteinEntriesB, &numEntriesB, 1e7)) {
         printf("Unable to read the file: %s\n",filenameB);
         return 0;        
     }
@@ -49,6 +49,7 @@ int main(int argc, char* argv[]) {
         if (proteinEntriesA[i].length > max_sizeA)
             max_sizeA = proteinEntriesA[i].length;
     }
+
     for(i=0; i<numEntriesB; i++){
         HsizeB += proteinEntriesB[i].length;
         if (proteinEntriesB[i].length > max_SizeB)
@@ -62,7 +63,7 @@ int main(int argc, char* argv[]) {
     load_balance(B_chunck_start, B_chunck_num, B_chunck_size, HsizeB, numEntriesB, proteinEntriesB, NumOfThreads);
 
     int MaxHSize = (max_sizeA+2)*(max_SizeB+2);
-    printf("MaxSize: %d\n", MaxHSize);
+    
     //Allocates similarity matrix H
     //INT *H;
     #ifdef SAVEHP
@@ -135,7 +136,7 @@ int main(int argc, char* argv[]) {
     free(H);
     free(P);
 
-
+    
     for (int i = 0; i < numEntriesA; i++) {
         free(proteinEntriesA[i].protein);
     }

@@ -35,7 +35,7 @@ void printMatrix(INT* matrix, int8_t *a, int8_t *b, int m, int n);
 void printPredecessorMatrix(INT* matrix, int8_t *a, int8_t *b, int m, int n);
 void generate(int8_t *a, int8_t *b, int m, int n);
 void saveInFile (INT *H, int8_t *a, int8_t *b, int m, int n);
-int readProteinDataset(const char *filename, ProteinEntry **proteinEntries, int *numEntries);
+int readProteinDataset(const char *filename, ProteinEntry **proteinEntries, int *numEntries, int maxNumEnt);
 int getNumCPUThreads();
 void load_balance(int* chunck_start, int* chunck_num, int* chunck_size, int Hsize, int numEntries, ProteinEntry *proteinEntries, int NumOfThreads);
 double wakeup_delay();

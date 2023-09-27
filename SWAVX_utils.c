@@ -159,14 +159,14 @@ void saveInFile (INT *H, int8_t *a, int8_t *b, int m, int n){
 
 //Read Dataset
 
-int readProteinDataset(const char *filename, ProteinEntry **proteinEntries, int *numEntries) {
+int readProteinDataset(const char *filename, ProteinEntry **proteinEntries, int *numEntries, int maxNumEnt) {
     FILE *file = fopen(filename, "r");
     if (!file) {
         perror("Error opening file");
         return 0;
     }
 
-    int maxEntries = 1000; // Initial capacity, can be adjusted
+    int maxEntries = maxNumEnt; // Initial capacity, can be adjusted
     *proteinEntries = (ProteinEntry *)malloc(maxEntries * sizeof(ProteinEntry)+16);
     if (*proteinEntries == NULL) {
         perror("Memory allocation failed");
