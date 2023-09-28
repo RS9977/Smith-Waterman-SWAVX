@@ -45,6 +45,8 @@ int main(int argc, char* argv[]) {
     P = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(INT));
     #endif
 
+    INT* maxVal  = calloc(numEntriesA * numEntriesB, sizeof(INT));
+
     struct timespec time_start, time_stop;
     clock_gettime(CLOCK_REALTIME, &time_start);
 
@@ -54,26 +56,26 @@ int main(int argc, char* argv[]) {
             #ifdef B512
                 #ifdef BT
                 if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
+                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, (maxVal+i+numEntriesA*j));
                 else
-                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
+                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, (maxVal+i+numEntriesA*j));
                 #else
                 if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
+                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, (maxVal+i+numEntriesA*j));
                 else
-                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
+                    SWAVX_512_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, (maxVal+i+numEntriesA*j));
                 #endif
             #else
                 #ifdef BT
                 if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
+                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, (maxVal+i+numEntriesA*j));
                 else
-                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
+                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, (maxVal+i+numEntriesA*j));
                 #else
                 if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, gapscore);
+                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, (maxVal+i+numEntriesA*j));
                 else
-                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, gapscore);
+                    SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, (maxVal+i+numEntriesA*j));
                 #endif
             #endif
             start += (proteinEntriesA[i].length+1) * (proteinEntriesB[j].length+1);
@@ -87,10 +89,33 @@ int main(int argc, char* argv[]) {
     printf("GCUPS: %f\n", HsizeA*HsizeB/(1e9*MeanTime));
 
 
+    for(int i=0; i<numEntriesA; i++){
+        printf("\nQuery number %d: \n", i);
+        INT max[bestMatchNum]={0};
+        int max_ind[bestMatchNum];
+        for(int k=0; k<bestMatchNum; k++){
+            for(int j=0; j<numEntriesB; j++){
+                int ind = i+numEntriesA*j;
+                if (!isValueInArray(max_ind, k, ind)){
+                    if(max[k]<maxVal[ind]){
+                        max[k]     = maxVal[ind];
+                        max_ind[k] = ind;
+                    }
+                }
+            }
+        }
+        for(int k=0; k<bestMatchNum; k++){
+            printf("(j: %d, max: %d)| ",max_ind[k], max[k]);
+        }
+    }
+    printf("\n");
+
+
+
     //Frees similarity matrixes
     free(H);
     free(P);
-
+    free(maxVal);
 
     for (int i = 0; i < numEntriesA; i++) {
         free(proteinEntriesA[i].protein);

@@ -305,3 +305,13 @@ double wakeup_delay()
   }
   return quasi_random;
 }
+
+
+int isValueInArray(int arr[], int size, int target) {
+    for (int i = 0; i < size; i++) {
+        if (arr[i] == target) {
+            return 1; // Found the target value in the array
+        }
+    }
+    return 0; // Target value not found in the array
+}

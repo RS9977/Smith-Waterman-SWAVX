@@ -40,3 +40,5 @@ int getNumCPUThreads();
 void load_balance(int* chunck_start, int* chunck_num, int* chunck_size, int Hsize, int numEntries, ProteinEntry *proteinEntries, int NumOfThreads);
 double wakeup_delay();
 double interval(struct timespec start, struct timespec end);
+int isValueInArray(int arr[], int size, int target);
+

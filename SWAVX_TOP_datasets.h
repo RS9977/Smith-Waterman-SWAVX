@@ -7,4 +7,5 @@
 #include "SWAVX_256_Func_SeqToSeq_SubMat.h"
 #endif
 
-#define NumOfTest 1e2
+#define NumOfTest 1e0
+#define bestMatchNum 2

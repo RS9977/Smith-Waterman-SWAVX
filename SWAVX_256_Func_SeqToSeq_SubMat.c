@@ -1,6 +1,6 @@
 #include "SWAVX_256_Func_SeqToSeq_SubMat.h"
 
-void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int n, int NumOfTest, int gapScore){
+void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int n, int NumOfTest, INT* maxVal){
 
     //Calculates the similarity matrix
     long long int i, j;
@@ -41,6 +41,7 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
     for(it=0; it<NumOfTest; it++){
     long long int maxPos         = 0;
     long long int maxPos_max_len = 0;
+    
 
     long long int ind   = 3;
     long long int indd  = 0;
@@ -103,11 +104,11 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
         for (j=j_start; j <j_end-Vsize+1; j+=Vsize) { //Columns          
            
            #ifdef L8
-           similarityScoreIntrinsic8(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, gapScore, a, b, m, n);
+           similarityScoreIntrinsic8(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n);
            #elif L16
-           similarityScoreIntrinsic16(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, gapScore, a, b, m, n);
+           similarityScoreIntrinsic16(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n);
            #else
-           similarityScoreIntrinsic32(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, gapScore, a, b, m, n);
+           similarityScoreIntrinsic32(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n);
            #endif
 
            ii -= Vsize;
@@ -119,7 +120,7 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
            PP++;
         }
         for(;j<j_end; j++){   
-            similarityScore(ind+j, ind_u+j, ind_d+j, ind_l+j, ii, jj, H, P, max_len, &maxPos, &maxPos_max_len, gapScore, a, b, m, n);
+            similarityScore(ind+j, ind_u+j, ind_d+j, ind_l+j, ii, jj, H, P, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n);
             ii --;
             jj ++;
         }
@@ -129,6 +130,7 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
        backtrack(P, maxPos, maxPos_max_len, m, n);
        #endif
     }
+    
 
     #ifdef DEBUG
     saveInFile(H, a, b, m, n);
@@ -142,7 +144,7 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
 
 }
 
-void similarityScore(long long int ind, long long int ind_u, long long int ind_d, long long int ind_l, long long int ii, long long int jj, INT* H, INT* P, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int gapScore, int8_t *a, int8_t *b, int m, int n) {
+void similarityScore(long long int ind, long long int ind_u, long long int ind_d, long long int ind_l, long long int ii, long long int jj, INT* H, INT* P, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, INT* maxVal, int8_t *a, int8_t *b, int m, int n) {
 
     INT up, left, diag;
 
@@ -206,15 +208,19 @@ void similarityScore(long long int ind, long long int ind_u, long long int ind_d
     #endif
 
     //Updates maximum score to be used as seed on backtrack 
+    #ifdef BT
     if (max > H[*maxPos]) {
         *maxPos = ind;
         *maxPos_max_len = max_len;
     }
+    #else
+    *maxVal = (max>*maxVal)? max: *maxVal;
+    #endif
 
 }  /* End of similarityScore */
 
 
-void similarityScoreIntrinsic32(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, __m256i reverseIndices, long long int ii, long long int jj, INT* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int gapScore, int8_t *a, int8_t *b, int m, int n) {
+void similarityScoreIntrinsic32(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, __m256i reverseIndices, long long int ii, long long int jj, INT* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, INT* maxVal, int8_t *a, int8_t *b, int m, int n) {
 
    __m256i up, left, diag;
 
@@ -311,16 +317,21 @@ void similarityScoreIntrinsic32(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,
     int max_index = _mm256_movemask_epi8(vcmp);
 
     max_index = __builtin_ctz(max_index) >> 2;
-
+    
+    #ifdef BT
     if (H[ind+max_index] > H[*maxPos]) {
         *maxPos         = ind+max_index;
         *maxPos_max_len = max_len;
     }
+    #else
+    int v = _mm256_extract_epi32(vmax, 0);
+    *maxVal = (v>*maxVal)? v: *maxVal;
+    #endif
 
 }  /* End of similarityScore */
 
 
-void similarityScoreIntrinsic16(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, __m128i reverseIndices, long long int ii, long long int jj, INT* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int gapScore, int8_t *a, int8_t *b, int m, int n) {
+void similarityScoreIntrinsic16(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, __m128i reverseIndices, long long int ii, long long int jj, INT* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, INT* maxVal, int8_t *a, int8_t *b, int m, int n) {
 
    __m256i up, left, diag;
 
@@ -421,6 +432,8 @@ void similarityScoreIntrinsic16(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,
     short int v1 = _mm256_extract_epi16(vtmp1,0);
     short int v2 = _mm256_extract_epi16(vtmp1,1);
     v1 = (v1>v2)?v1:v2;
+
+    #ifdef BT
     __m256i vcmp = _mm256_cmpeq_epi16(_mm256_set1_epi16(v1), max);
     int max_index = _mm256_movemask_epi8(vcmp);
     max_index = __builtin_ctz(max_index) >> 1;
@@ -431,12 +444,14 @@ void similarityScoreIntrinsic16(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,
         *maxPos         = ind+max_index;
         *maxPos_max_len = max_len;
     }
-
+    #else
+    *maxVal = (v1>*maxVal)? v1: *maxVal;
+    #endif
 }  /* End of similarityScore */
 
 
 
-void similarityScoreIntrinsic8(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, RevType reverseIndices, long long int ii, long long int jj, INT* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int gapScore, int8_t *a, int8_t *b, int m, int n) {
+void similarityScoreIntrinsic8(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, RevType reverseIndices, long long int ii, long long int jj, INT* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, INT* maxVal, int8_t *a, int8_t *b, int m, int n) {
 
    __m256i up, left, diag;
 
@@ -557,15 +572,19 @@ void similarityScoreIntrinsic8(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,_
     vtmp2 = _mm256_srli_si256(vtmp1,1);
     vtmp1 = _mm256_max_epi8(vtmp1,vtmp2);
     short int v = _mm256_extract_epi8(vtmp1,0);
+    #ifdef BT
     __m256i vcmp = _mm256_cmpeq_epi8(_mm256_set1_epi8(v), max);
     int max_index = _mm256_movemask_epi8(vcmp);
     max_index = __builtin_ctz(max_index);
 
+    
     if (H[ind+max_index] > H[*maxPos]) {
         *maxPos         = ind+max_index;
         *maxPos_max_len = max_len;
     }
-
+    #else
+    *maxVal = (v>*maxVal)? v: *maxVal;
+    #endif
 }  /* End of similarityScore */
 
 

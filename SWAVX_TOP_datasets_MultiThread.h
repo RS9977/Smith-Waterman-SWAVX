@@ -12,6 +12,7 @@
 
 #define NumOfTest 1e0
 //#define MaxHSize 3e7
+#define bestMatchNum 2
 
 typedef struct {
     ProteinEntry *proteinA;
@@ -20,6 +21,7 @@ typedef struct {
     INT* P;
     int  A_num;
     int  B_num;
+    INT* maxVal;
 } WorkerIns;
 
 void* chunck_computations(void* in);
