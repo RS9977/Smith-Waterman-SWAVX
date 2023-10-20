@@ -63,46 +63,33 @@ def parse_gcc_params(output, best_param, i, numIter, alpha=15, beta=30):
 
     return params
 
-def compile_with_gcc(gcc_params, selected_indices, opt, i=-1, CorGorI=2, output_binary="SWAVX_tuned"):
+def compile_with_gcc(gcc_params, selected_indices, opt, i=-1, optTarget=2, output_binary="SWAVX_tuned", flto=0):
     try:
-        # Build the GCC command with parameters
-        
-        if i>-1:
-            param_cnt = 0
+        # Build the GCC command with parameters   
+        param_cnt = 0
             
-            gcc_command1 = ["gcc", opt, "-mavx2", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", output_binary]
-            gcc_command2 = ["gcc", opt, "-mavx2", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-S"]
-            
-            for param_name, param_value in gcc_params.items():
-                if param_cnt not in selected_indices:
-                    continue
-                param_cnt += 1
-                gcc_command1.append(f"--param={param_name}={param_value}")
-                gcc_command2.append(f"--param={param_name}={param_value}")
-            
-            # Run GCC to compile the program
-            subprocess.check_call(gcc_command1)
-            subprocess.check_call(gcc_command2)
-            return 1
+        if flto:
+            gcc_command1 = ["gcc", opt, "-mavx2", "-flto", "-fsave-optimization-record", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", output_binary]
         else:
-            param_cnt = 0
-            
             gcc_command1 = ["gcc", opt, "-mavx2", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", output_binary]
             gcc_command2 = ["gcc", opt, "-mavx2", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-S"]
             
-            for param_name, param_value in gcc_params.items():
-                if param_cnt not in selected_indices:
-                    continue
-                param_cnt += 1
-                gcc_command1.append(f"--param={param_name}={param_value}")
+        for param_name, param_value in gcc_params.items():
+            if param_cnt not in selected_indices:
+                continue
+            param_cnt += 1
+            gcc_command1.append(f"--param={param_name}={param_value}")
+            if not flto:
                 gcc_command2.append(f"--param={param_name}={param_value}")
-            
-            # Run GCC to compile the program
-            subprocess.check_call(gcc_command1)
+ 
+        #Run GCC to compile the program
+        subprocess.check_call(gcc_command1)
+        if not flto:
             subprocess.check_call(gcc_command2)
-            
+
+        if i<=-1: 
             print("Compilation successful. Binary SWAVX and assemblies generated.")
-            return 1
+        return 1
 
     except subprocess.CalledProcessError as e:
         print(f"Error during compilation: {i}")
@@ -253,30 +240,45 @@ def load_dictionary_from_file(filename):
     return dictionary
 
 def get_size_info(binary_name):
-    command = f"ls -la | grep  rwxr-xr-x.*{binary_name}"
+    command = f"du -b {binary_name}"
         
     try:
         output = subprocess.check_output(command, shell=True, text=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         print(f"Error running the command for {binary_name}: {e}")
-
+    
+    '''
     #pattern = r"Total Cycles:\s+(\d+)"
     pattern = r'\s+caad\s+(\d+)\s+Sep\s+'
     match = re.search(pattern, output)
 
-    if match:
+    try match:
         Size = int(match.group(1))
         return Size
     else:
         print(f"Pattern not found in the command output for {binary_name}")
-
-
-def main(CorGorI=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads=32, alpha=30, beta=50, Par_Val=0, output_binary = "SWAVX_tuned"):
-    
-    print(f"Result calculated for\talpha: {alpha},\tbeta: {beta},\tnumIter:{numIter},\tnumPar: {numPar},\tnumTest: {numTest}\tnumThreads: {NumOfThreads}")
-    print("---------------------------------------------\n")
+    '''
     try:
-                
+        return int(output.split()[0])
+    except:
+        print(f"Pattern not found in the command output for {binary_name}")
+
+def are_files_equal(binaries, curFile):
+    try:
+        with open(curFile, 'rb') as curF:
+            curContent = curF.read()
+            for preContent in binaries:
+                if preContent == curContent:
+                    return curContent, True          
+            return curContent, False
+    except FileNotFoundError:
+        return curContent, False
+
+def main(optTarget=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads=32, alpha=30, beta=50, Par_Val=0, output_binary = "SWAVX_tuned", flto=0, optPass='-O3'):
+    print(f"Result calculated for:\nalpha: {alpha},\tbeta: {beta},\tnumIter:{numIter},\tnumPar: {numPar},\tnumTest: {numTest},\tnumThreads: {NumOfThreads},\tflto: {flto},\toptTarget: {optTarget},\toptPass: {optPass}")
+    print("---------------------------------------------\n")
+    
+    try:                
         try:
             if Par_Val:
                 [gcc_params_min,selected_indices_min, cycles_pre] = load_dictionary_from_file('Par_Val')
@@ -288,13 +290,17 @@ def main(CorGorI=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads=3
             selected_indices_min   = []
             gcc_params_min         = {}
             cycles_pre             = []
-        compile_with_gcc(gcc_params_min, selected_indices_min, "-O3", -1, CorGorI, output_binary=output_binary)    
+        compile_with_gcc(gcc_params_min, selected_indices_min, "-O3", -1, optTarget, output_binary=output_binary, flto=flto)    
         GCUPS_max_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*5)
         GCUPS_max = get_gcups_from_command(f"./{output_binary} 1", numTest*10)
         GCUPS_max_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*10)
-        cycles_min = get_asm_info('./')
-        instruction_count, total_instructions_min = count_instructions_in_directory('./')
-        cycles_min.append(total_instructions_min)
+        if not flto:
+            cycles_min = get_asm_info('./')
+            instruction_count, total_instructions_min = count_instructions_in_directory('./')
+            cycles_min.append(total_instructions_min)     
+        else:
+            cycles = []
+            preBinary, eq = are_files_equal(cycles, output_binary)      
         try:
             Size_min   = get_size_info(output_binary)
         except:
@@ -304,29 +310,39 @@ def main(CorGorI=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads=3
         print('Without Tuning:')
         print(f"Initial GCUPS : {GCUPS_max:.4f}")
         print(f"Initial GCUPS main: {GCUPS_max_main:.4f}")
-        print(f"Initial total Instructions: {total_instructions_min}")
-        print(f"Initial cycles: {cycles_min}")
+        if not flto:
+            print(f"Initial total Instructions: {total_instructions_min}")
+            print(f"Initial cycles: {cycles_min}")
+        print(f"Initial binary size: {Size_min}")
         print("---------------------------------------------\n")
         print("Tuning...")
+        if not flto:
+            cycles_min.append(total_instructions_min)
+            if len(cycles_pre)==0:
+                cycles_pre = [cycles_min]
+            total_instructions_pre = total_instructions_min
+        else:
+            cycles_min = []
+            total_instructions_pre = []
+            binaries = [preBinary]
 
-        cycles_min.append(total_instructions_min)
-        if len(cycles_pre)==0:
-            cycles_pre = [cycles_min]
-        total_instructions_pre = total_instructions_min
         same_cnt = 0
         #GCUPS_max = 0
-        #gcc_command = ["gcc", "-O3", "-mavx2", "-D", "SUBMAT", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", "SWAVX"]
+        #gcc_command = ["gcc", "-Ofast", "-mavx2", "-D", "SUBMAT", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", "SWAVX"]
         #subprocess.check_call(gcc_command)
         #GCUPS_max = get_gcups_from_command('./SWAVX',numTest)
         
         j = -1
         while same_cnt < numStop*numIter:
             j += 1
-            print(f"(j: {j}), Explored space: {len(cycles_pre)}, Repetitions: {same_cnt}", end="\r")
+            if not flto:
+                print(f"(j: {j}), Explored space: {len(cycles_pre)}, Repetitions: {same_cnt}", end="\r")
+            else:
+                print(f"(j: {j}), Explored space: {len(binaries)}, Repetitions: {same_cnt}", end="\r")
             for i in range(numIter):
                 '''
                 if j==numOutIter-1:
-                    CorGorI = 1
+                    optTarget = 1
                 '''
                 # Run `gcc --help=params` and capture the output
                 output = subprocess.check_output(["gcc", "--help=params"], stderr=subprocess.STDOUT, universal_newlines=True)
@@ -340,7 +356,7 @@ def main(CorGorI=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads=3
                 selected_indices = random.sample(range(0, 270), numPar)
                 selected_indices.sort()
                 # Use apply_async to run the function in a separate process
-                result = pool.apply_async(compile_with_gcc, (gcc_params, selected_indices, "-O3", i, CorGorI, output_binary))
+                result = pool.apply_async(compile_with_gcc, (gcc_params, selected_indices, optPass, i, optTarget, output_binary, flto))
 
                 result_value = 0
                 try:
@@ -358,29 +374,40 @@ def main(CorGorI=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads=3
                 pool.join()
 
                 if result_value:
-                    if CorGorI == 1:
-                        cycles = get_asm_info('./')
-                        instruction_count, total_instructions = count_instructions_in_directory('./')
-                        cycles.append(total_instructions)
+                    if optTarget == 1:
+                        if not flto:
+                            cycles = get_asm_info('./')
+                            instruction_count, total_instructions = count_instructions_in_directory('./')
+                            cycles.append(total_instructions)
+                        else:
+                            preBinary, eq = are_files_equal(binaries, output_binary)
                         same_cnt += 1
-                        if not are_lists_identical(cycles,cycles_pre):
+                        if ((not are_lists_identical(cycles,cycles_pre)) and not flto) or (flto and not eq):
                             same_cnt = 0
-                            cycles_pre.append(cycles)
+                            if not flto:
+                                cycles_pre.append(cycles)
+                            else:
+                                binaries.append(preBinary)     
                             gcups = get_gcups_from_command(f"./{output_binary} 1", numTest)
                             if (gcups-GCUPS_max)/GCUPS_max>0.005:
                                 gcups_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*10)
                                 if  gcups_main > GCUPS_max_main:
                                     gcups = get_gcups_from_command(f"./{output_binary} 1", numTest*10)
                                     if gcups > GCUPS_max:
-                                        print(f"(j: {j}, i: {i}),   {cycles} :=>\t({GCUPS_max:.4f} -> {gcups:.4f}),\t({GCUPS_max_main:.4f} -> {gcups_main:.4f})")
+                                        if not flto:
+                                            print(f"(j: {j}, i: {i}),   {cycles} :=>\t({GCUPS_max:.4f} -> {gcups:.4f}),\t({GCUPS_max_main:.4f} -> {gcups_main:.4f})")
+                                        else:
+                                            print(f"(j: {j}, i: {i}) :=>\t({GCUPS_max:.4f} -> {gcups:.4f}),\t({GCUPS_max_main:.4f} -> {gcups_main:.4f})")
                                         GCUPS_max = gcups
                                         GCUPS_max_main = gcups_main
                                         gcc_params_min = gcc_params
                                         selected_indices_min = selected_indices
                                         save_dictionary_to_file([gcc_params_min,selected_indices_min, cycles_pre],'Par_Val_temp')
-
-                            
-                    elif CorGorI == 2:
+                          
+                    elif optTarget == 2: 
+                        if flto:
+                            print("flto should be 0")
+                            break                       
                         instruction_count, total_instructions = count_instructions_in_directory('./')
                         if total_instructions < total_instructions_min:
                             print(i,'of',j, ':= ', total_instructions_min, '->',total_instructions)
@@ -389,15 +416,66 @@ def main(CorGorI=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads=3
                             selected_indices_min = selected_indices
                             save_dictionary_to_file([gcc_params_min,selected_indices_min, cycles_pre],'Par_Val_temp')
 
-                    elif CorGorI == 3:
-                        size = get_size_info("SWAVX_tuned")
-                        if size < Size_min:
-                            print(i,'of',j, ':= ', Size_min, '->',size)
-                            Size_min = size
-                            gcc_params_min = gcc_params
-                            selected_indices_min = selected_indices
-                            save_dictionary_to_file([gcc_params_min,selected_indices_min, cycles_pre],'Par_Val_temp')
+                    elif optTarget == 3:  
+                        same_cnt += 1
+                        if not flto:
+                            cycles = get_asm_info('./')
+                            instruction_count, total_instructions = count_instructions_in_directory('./')
+                            cycles.append(total_instructions)
+                        else:
+                            preBinary, eq = are_files_equal(binaries, output_binary)   
+                        if ((not are_lists_identical(cycles,cycles_pre)) and not flto) or (flto and not eq):
+                            same_cnt = 0
+                            if not flto:
+                                cycles_pre.append(cycles)
+                            else:
+                                binaries.append(preBinary) 
+                            size = get_size_info(output_binary)
+                            if size < Size_min:
+                                same_cnt = 0
+                                print('******************', i,'of',j, ':= ', Size_min, '->',size, '******************')
+                                Size_min = size
+                                gcc_params_min = gcc_params
+                                selected_indices_min = selected_indices
+                                save_dictionary_to_file([gcc_params_min,selected_indices_min, cycles_pre],'Par_Val_temp')
+
+                    elif optTarget == 4:
+                        same_cnt += 1
+                        if not flto:
+                            cycles = get_asm_info('./')
+                            instruction_count, total_instructions = count_instructions_in_directory('./')
+                            cycles.append(total_instructions)
+                        else:
+                            preBinary, eq = are_files_equal(binaries, output_binary)   
+                        if ((not are_lists_identical(cycles,cycles_pre)) and not flto) or (flto and not eq):
+                            same_cnt = 0
+                            if not flto:
+                                cycles_pre.append(cycles)
+                            else:
+                                binaries.append(preBinary) 
+                            size = get_size_info(output_binary)
+                            if size < Size_min:    
+                                gcups = get_gcups_from_command(f"./{output_binary} 1", numTest)
+                                if (gcups-GCUPS_max)/GCUPS_max>0.005:
+                                    gcups_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*10)
+                                    if  gcups_main > GCUPS_max_main:
+                                        gcups = get_gcups_from_command(f"./{output_binary} 1", numTest*10)
+                                        if gcups > GCUPS_max:
+                                            if not flto:
+                                                print(f"(j: {j}, i: {i}),   {cycles} :=>\t({Size_min} -> {size})\t({GCUPS_max:.4f} -> {gcups:.4f}),\t({GCUPS_max_main:.4f} -> {gcups_main:.4f})")
+                                            else:
+                                                print(f"(j: {j}, i: {i}) :=>\t({Size_min} -> {size})\t({GCUPS_max:.4f} -> {gcups:.4f}),\t({GCUPS_max_main:.4f} -> {gcups_main:.4f})")
+                                            GCUPS_max = gcups
+                                            GCUPS_max_main = gcups_main
+                                            gcc_params_min = gcc_params
+                                            selected_indices_min = selected_indices
+                                            save_dictionary_to_file([gcc_params_min,selected_indices_min, cycles_pre],'Par_Val_temp')
+
+
                     else:
+                        if flto:
+                            print("flto should be 0")
+                            break
                         cycles = get_asm_info('./')
                         if cycles[1] < cycles_min[1]:
                             print(i,'of',j, ':= ', cycles_min, '->',cycles)
@@ -407,22 +485,31 @@ def main(CorGorI=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads=3
                             save_dictionary_to_file([gcc_params_min,selected_indices_min, cycles_pre],'Par_Val_temp')
         print("---------------------------------------------\n")
         print('With Tuning:')
-        compile_with_gcc(gcc_params_min, selected_indices_min, "-O3", -1, CorGorI, output_binary=output_binary)    
+        compile_with_gcc(gcc_params_min, selected_indices_min, optPass, -1, optTarget, output_binary=output_binary, flto=flto)    
         GCUPS_max = get_gcups_from_command(f"./{output_binary} 1", numTest*10)
-        cycles_min = get_asm_info('./')
-        instruction_count, total_instructions_min = count_instructions_in_directory('./')
-        cycles_min.append(total_instructions_min)
+        if not flto:
+            cycles_min = get_asm_info('./')
+            instruction_count, total_instructions_min = count_instructions_in_directory('./')
+            cycles_min.append(total_instructions_min)
         GCUPS_max_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*10)
+        try:
+            Size_min   = get_size_info(output_binary)
+        except:
+            Size_min = 0
         print(f"Final GCUPS : {GCUPS_max:.4f}")
         print(f"Final GCUPS main: {GCUPS_max_main:.4f}")
-        print(f"Final total Instructions: {total_instructions_min}")
-        print(f"Final cycles: {cycles_min}")
-
-        print("Size of the solution space: ", len(cycles_pre))
+        if not flto:
+            print(f"Final total Instructions: {total_instructions_min}")
+            print(f"Final cycles: {cycles_min}")
+        print(f"Final binary size: {Size_min}")
+        if not flto:
+            print("Size of the solution space: ", len(cycles_pre))
+        else:
+            print("Size of the solution space: ", len(binaries))
         save_dictionary_to_file([gcc_params_min,selected_indices_min, cycles_pre],'Par_Val')
     except subprocess.CalledProcessError as e:
         print("Error running 'gcc --help=params':")
         print(e.output)
 
 if __name__ == "__main__":
-    main(CorGorI=1, numPar=260, numStop=4, numIter=50, numTest=5, NumOfThreads=32, alpha=20, beta=20, Par_Val=0, output_binary = "SWAVX_tuned")
+    main(optTarget=1, numPar=260, numStop=20, numIter=50, numTest=5, NumOfThreads=28, alpha=20, beta=10, Par_Val=0, output_binary="SWAVX_tuned", flto=1, optPass='-O3')
