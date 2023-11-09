@@ -205,7 +205,11 @@ int readProteinDataset(const char *filename, ProteinEntry **proteinEntries, int 
                     return 0;
                 }
                 for (int i = 0; i < lineLength; i++) {
+                    #ifdef PARASAIL
+                    sequence[seqLength + i] = line[i]; // Convert char to numeric value
+                    #else
                     sequence[seqLength + i] = line[i] - 'A'; // Convert char to numeric value
+                    #endif
                 }
                 seqLength += lineLength;
             }

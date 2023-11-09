@@ -4,6 +4,11 @@
 #include <pthread.h>
 
 
+#ifdef PARASAIL
+#include "parasail.h"
+#include "parasail/matrices/blosum62.h"
+#endif
+
 #ifdef B512
 #include "SWAVX_512_Func_SeqToSeq_SubMat.h"
 #else
