@@ -129,7 +129,7 @@ endif
 
 
 PARA:
-	gcc -O3 $(src) -D PARASAIL SWAVX_TOP_datasets_MultiThread.c  -I/usr/local/include  -L/usr/local/lib -lparasail -o PARA
+	gcc -O3 $(CFLAGS) $(src) -D PARASAIL SWAVX_TOP_datasets_MultiThread.c  -I/usr/local/include  -L/usr/local/lib -lparasail -o PARA
 
 clean_PARA:
 	rm PARA
