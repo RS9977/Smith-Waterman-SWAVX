@@ -202,11 +202,8 @@ void* chunck_computations(void* in){
                 #elif P_diag
                     result = parasail_sw_diag_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
                 #else
-                    result = parasail_sw_striped_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                    result = parasail_sw_striped_avx2_256_32(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
                 #endif
-                
-                
-
                 *(maxVal+i+A_num*j) = result->score;
                 parasail_result_free(result);
             #else

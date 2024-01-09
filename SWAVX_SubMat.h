@@ -6,3 +6,5 @@ extern int const iBlosum62 [1024];
 extern int matchScore;
 extern int missmatchScore;
 extern int gapScore;
+extern int gapOpen;
+extern int gapExt;

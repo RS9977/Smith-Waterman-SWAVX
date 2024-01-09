@@ -38,3 +38,5 @@ int const iBlosum62 [1024] = {
 int matchScore     = 5;
 int missmatchScore = -3;
 int gapScore       = -10; 
+int gapOpen       = -10; 
+int gapExt        = -1; 

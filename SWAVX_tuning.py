@@ -512,4 +512,4 @@ def main(optTarget=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads
         print(e.output)
 
 if __name__ == "__main__":
-    main(optTarget=1, numPar=260, numStop=20, numIter=50, numTest=5, NumOfThreads=28, alpha=20, beta=10, Par_Val=0, output_binary="SWAVX_tuned", flto=1, optPass='-O3')
+    main(optTarget=1, numPar=260, numStop=5, numIter=50, numTest=5, NumOfThreads=20, alpha=20, beta=10, Par_Val=0, output_binary="SWAVX_tuned", flto=0, optPass='-O3')

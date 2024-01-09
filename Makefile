@@ -4,6 +4,9 @@ AVX2_32_D_SM:
 AVX2_32_SM:
 	gcc -O3 $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D SUBMAT
 
+AVX2_8_SM:
+	gcc -g $(src) SWAVX_TOP.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D SUBMAT -D L8
+
 AVX2_32_D_SM_datasets:
 	gcc -O3 $(src) SWAVX_TOP_datasets.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -o SWAVX -D DEBUG -D SUBMAT
 AVX2_32_SM_datasets:
@@ -128,8 +131,13 @@ CFLAGS += $(foreach var,$(VAR),-D $(var))
 endif
 
 
+
 PARA:
-	gcc -O3 $(CFLAGS) $(src) -D PARASAIL SWAVX_TOP_datasets_MultiThread.c  -I/usr/local/include  -L/usr/local/lib -lparasail -o PARA
+	gcc $(CFLAGS) $(src) -D PARASAIL SWAVX_TOP_datasets_MultiThread.c  -I/usr/local/include  -L/usr/local/lib -lparasail -o PARA
+
+
+PARA_SCC:
+	gcc $(CFLAGS) $(src) -D PARASAIL SWAVX_TOP_datasets_MultiThread.c  -I/projectnb/caad/sajjadi/SWAVX/parasail/include  -L/projectnb/caad/sajjadi/SWAVX/parasail/lib -lparasail -o PARA
 
 clean_PARA:
 	rm PARA
