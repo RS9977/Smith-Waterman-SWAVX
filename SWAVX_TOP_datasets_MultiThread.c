@@ -5,10 +5,10 @@ int main(int argc, char* argv[]) {
     double wk = wakeup_delay();
 
     const char *filenameA = "test2.fasta"; 
-    const char *filenameB = "test3.fasta"; 
+    const char *filenameB = "test4.fasta"; 
     int NumOfThreads      = getNumCPUThreads();
     if(NumOfThreads<1){
-        NumOfThreads = 10;
+        NumOfThreads = 1;
     }
     if(argc==2)
     {
