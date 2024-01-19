@@ -71,7 +71,7 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
 
     double t;
     int it;
-    for(it=0; it<NumOfTest; it++){
+    
     long long int maxPos         = 0;
     long long int maxPos_max_len = 0;
     
@@ -211,7 +211,7 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
        #ifdef BT
        backtrack(P, maxPos, maxPos_max_len, m, n);
        #endif
-    }
+    
 
     #ifndef BT
     __m256i max = _mm256_loadu_si256(local_max);
@@ -382,7 +382,7 @@ void similarityScoreIntrinsic32(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,
     #ifdef SUBMAT
     __m256i addresses = _mm256_add_epi32(_mm256_mullo_epi32(A, _mm256_set1_epi32(32)), B);
     // Gather the values from the other matrix using the calculated addresses
-    __m256i gatheredData   = _mm256_i32gather_epi32((void*) iBlosum62, addresses, sizeof(int ));
+    __m256i gatheredData   = _mm256_i32gather_epi32((void*) iBlosum62, addresses, sizeof(int));
      diag                  = _mm256_add_epi32(HHd, gatheredData);
 
     #else

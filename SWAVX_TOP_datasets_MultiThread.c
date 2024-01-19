@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
 
     struct timespec time_start, time_stop;
     clock_gettime(CLOCK_REALTIME, &time_start);
-        for(int kk=0; kk<1; kk++){
+        for(int kk=0; kk<NumOfTest; kk++){
         pthread_t threads[MAX_THREAD];
         WorkerIns thread_data_array[MAX_THREAD];
         int t;
@@ -197,12 +197,30 @@ void* chunck_computations(void* in){
         for(j=0; j<B_num; j++){
             #ifdef PARASAIL
                 parasail_result_t *result = NULL;
+                #ifdef L8
                 #ifdef P_scan
                     result = parasail_sw_scan_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
                 #elif P_diag
                     result = parasail_sw_diag_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
                 #else
+                    result = parasail_sw_striped_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                #endif
+                #elif L16
+                #ifdef P_scan
+                    result = parasail_sw_scan_avx2_256_16(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                #elif P_diag
+                    result = parasail_sw_diag_avx2_256_16(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                #else
+                    result = parasail_sw_striped_avx2_256_16(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                #endif
+                #else
+                #ifdef P_scan
+                    result = parasail_sw_scan_avx2_256_32(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                #elif P_diag
+                    result = parasail_sw_diag_avx2_256_32(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                #else
                     result = parasail_sw_striped_avx2_256_32(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                #endif
                 #endif
                 *(maxVal+i+A_num*j) = result->score;
                 parasail_result_free(result);
