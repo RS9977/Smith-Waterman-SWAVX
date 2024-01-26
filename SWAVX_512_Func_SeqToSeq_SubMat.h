@@ -21,6 +21,6 @@
 
 void SWAVX_512_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int n, int NumOfTest, int* maxVal);
 void similarityScore(long long int ind, long long int ind_u, long long int ind_d, long long int ind_l, long long int ii, long long int jj, int* H, int* P, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int* maxVal, int8_t *a, int8_t *b, int m, int n);
-void similarityScoreIntrinsic(__m512i* HH,__m512i* Hu,__m512i* Hd,__m512i* Hl,__m512i* PP, __m512i reverseIndices, long long int ii, long long int jj, int* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int* maxVal, int8_t *a, int8_t *b, int m, int n);
+void similarityScoreIntrinsic(__m512i* HH,__m512i* Hu,__m512i* Hd,__m512i* Hl,__m512i* PP, __m512i reverseIndices, long long int ii, long long int jj, int* H, long long int ind,  __m512i* local_max, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int* maxVal, int8_t *a, int8_t *b, int m, int n);
 void backtrack(int* P, long long int maxPos, long long int maxPos_max_len, int m, int n);
 int matchMissmatchScore(long long int i, long long int j, int8_t* a, int8_t* b);

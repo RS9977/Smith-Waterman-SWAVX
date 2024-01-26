@@ -15,10 +15,10 @@
 #include "SWAVX_256_Func_SeqToSeq_SubMat.h"
 #endif
 
-#define NumOfTest 1e1
+#define NumOfTest 1e0
 //#define MaxHSize 3e7
 #define bestMatchNum 2
-
+#define MaxLenQuery 2000
 typedef struct {
     ProteinEntry *proteinA;
     ProteinEntry *proteinB;

@@ -2,7 +2,7 @@
 
 int main(int argc, char* argv[]) {
     
-    double wk = wakeup_delay();
+    //double wk = wakeup_delay();
 
     const char *filenameA = "test2.fasta"; 
     const char *filenameB = "test4.fasta"; 
@@ -131,7 +131,7 @@ int main(int argc, char* argv[]) {
     double MeanTime = interval(time_start, time_stop)/NumOfTest;
     printf("Elapsed time: %f\n", MeanTime);
     printf("GCUPS: %f\n", HsizeA*HsizeB/(1e9*MeanTime));
-    printf("WakeUpVal: %f\n",wk);
+    //printf("WakeUpVal: %f\n",wk);
 
     
 
@@ -192,18 +192,36 @@ void* chunck_computations(void* in){
     long long int start           = 0;
     #endif
     int  i,j;
+
+    #ifdef PARASAIL
+    parasail_matrix_t *matrix = parasail_matrix_create("ARNDCEQGHILKMFPSTWYV", matchScore, missmatchScore);
+    #endif
+
+
     
+    
+
     for(i=0; i<A_num; i++){
+        #if defined(SMP) && defined(L8)
+        int8_t query_prof[32*proteinEntriesA[i].length];    
+        for(int i=0; i<proteinEntriesA[i].length; i++){
+            memcpy(query_prof+i*32, iBlosum62_8bit + proteinEntriesA[i].protein[i]*32, 32 * sizeof(int8_t));
+        }
+        #else
+        int8_t* query_prof;
+        #endif
+        
+
         for(j=0; j<B_num; j++){
             #ifdef PARASAIL
                 parasail_result_t *result = NULL;
                 #ifdef L8
                 #ifdef P_scan
-                    result = parasail_sw_scan_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                    result = parasail_sw_scan_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, matrix);
                 #elif P_diag
-                    result = parasail_sw_diag_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                    result = parasail_sw_diag_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, matrix);
                 #else
-                    result = parasail_sw_striped_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                    result = parasail_sw_striped_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, matrix);
                 #endif
                 #elif L16
                 #ifdef P_scan
@@ -215,11 +233,11 @@ void* chunck_computations(void* in){
                 #endif
                 #else
                 #ifdef P_scan
-                    result = parasail_sw_scan_avx2_256_32(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                    result = parasail_sw_scan_avx2_256_32(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, matrix);
                 #elif P_diag
-                    result = parasail_sw_diag_avx2_256_32(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                    result = parasail_sw_diag_avx2_256_32(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, matrix);
                 #else
-                    result = parasail_sw_striped_avx2_256_32(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
+                    result = parasail_sw_striped_avx2_256_32(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, matrix);
                 #endif
                 #endif
                 *(maxVal+i+A_num*j) = result->score;
@@ -248,20 +266,20 @@ void* chunck_computations(void* in){
                     #ifdef SAVEHP
                         #ifdef BT
                         if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                            SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, (maxVal+i+A_num*j));
+                            SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P+start, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, (maxVal+i+A_num*j), query_prof,0);
                         else
-                            SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, (maxVal+i+A_num*j));
+                            SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P+start, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, (maxVal+i+A_num*j), query_prof,1);
                         #else
                         if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                            SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, (maxVal+i+A_num*j));
+                            SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H+start, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, (maxVal+i+A_num*j), query_prof,0);
                         else
-                            SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, (maxVal+i+A_num*j));
+                            SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H+start, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, (maxVal+i+A_num*j), query_prof,1);
                         #endif
                     #else
                     if(proteinEntriesA[i].length > proteinEntriesB[j].length)
-                        SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, (maxVal+i+A_num*j));
+                        SWAVX_256_SeqToSeq_SubMat(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H, P, proteinEntriesA[i].length+1, proteinEntriesB[j].length+1, NumOfTest, (maxVal+i+A_num*j), query_prof,0);
                     else
-                        SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, (maxVal+i+A_num*j));
+                        SWAVX_256_SeqToSeq_SubMat(proteinEntriesB[j].protein, proteinEntriesA[i].protein, H, P, proteinEntriesB[j].length+1, proteinEntriesA[i].length+1, NumOfTest, (maxVal+i+A_num*j), query_prof,1);
                     #endif
                 #endif
             #endif

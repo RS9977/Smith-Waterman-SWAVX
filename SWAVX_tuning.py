@@ -20,7 +20,7 @@ def parse_gcc_params(output, best_param, i, numIter, alpha=15, beta=30):
             a = int(match.group(2))
             b = int(match.group(3))
             # Initialize parameter with a random value within the specified range
-            if param_name not in best_param or random.randint(0, 100)<(alpha*(random.random())):
+            if param_name not in best_param or random.randint(0, 100)<(alpha*(random.random())) or i==0:
                 params[param_name] = random.randint(a, b)
             else:
                 value = random.randint(-1, 1)*math.floor(math.exp(-3*i/numIter)*(random.random())*(b-a)/beta) + best_param[param_name] 
@@ -37,7 +37,7 @@ def parse_gcc_params(output, best_param, i, numIter, alpha=15, beta=30):
             possible_values = match.group(2).split('|')
             # Choose a random value from the list of possible values
             if param_name not in params:
-                if param_name not in best_param or random.randint(0, 100)<math.floor(math.exp(-3*i/numIter)*(alpha)*(random.random())):
+                if param_name not in best_param or random.randint(0, 100)<math.floor(math.exp(-1.5*i/numIter)*(alpha)*(random.random()))  or i==0:
                     params[param_name] = random.choice(possible_values)
                 else:
                     params[param_name] = best_param[param_name]
@@ -50,7 +50,7 @@ def parse_gcc_params(output, best_param, i, numIter, alpha=15, beta=30):
         if param_name not in exceptions_param:
             # Check if the parameter has already been assigned a value from param_pattern
             if param_name not in params:
-                if param_name not in best_param or random.randint(0, 100)<(alpha*(random.random())):
+                if param_name not in best_param or random.randint(0, 100)<(alpha*(random.random())) or i==0:
                     params[param_name] = random.randint(0, 100000)
                 else:
                     if isinstance(best_param[param_name] , str):
@@ -71,8 +71,8 @@ def compile_with_gcc(gcc_params, selected_indices, opt, i=-1, optTarget=2, outpu
         if flto:
             gcc_command1 = ["gcc", opt, "-mavx2", "-flto", "-fsave-optimization-record", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", output_binary]
         else:
-            gcc_command1 = ["gcc", opt, "-mavx2", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", output_binary]
-            gcc_command2 = ["gcc", opt, "-mavx2", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-S"]
+            gcc_command1 = ["gcc", opt, "-mavx2", "-D", "L8",  "-D", "AFFINE", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", output_binary]
+            gcc_command2 = ["gcc", opt, "-mavx2", "-D", "L8",  "-D", "AFFINE", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-S"]
             
         for param_name, param_value in gcc_params.items():
             if param_cnt not in selected_indices:
@@ -292,7 +292,7 @@ def main(optTarget=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads
             cycles_pre             = []
         compile_with_gcc(gcc_params_min, selected_indices_min, "-O3", -1, optTarget, output_binary=output_binary, flto=flto)    
         GCUPS_max_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*5)
-        GCUPS_max = get_gcups_from_command(f"./{output_binary} 1", numTest*10)
+        GCUPS_max = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test3.fasta' 1", numTest*10)
         GCUPS_max_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*10)
         if not flto:
             cycles_min = get_asm_info('./')
@@ -388,12 +388,12 @@ def main(optTarget=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads
                                 cycles_pre.append(cycles)
                             else:
                                 binaries.append(preBinary)     
-                            gcups = get_gcups_from_command(f"./{output_binary} 1", numTest)
+                            gcups = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test3.fasta' 1", numTest)
                             if (gcups-GCUPS_max)/GCUPS_max>0.005:
                                 gcups_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*10)
                                 if  gcups_main > GCUPS_max_main:
-                                    gcups = get_gcups_from_command(f"./{output_binary} 1", numTest*10)
-                                    if gcups > GCUPS_max:
+                                    #gcups = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test3.fasta' 1", numTest*10)
+                                    #if gcups > GCUPS_max:
                                         if not flto:
                                             print(f"(j: {j}, i: {i}),   {cycles} :=>\t({GCUPS_max:.4f} -> {gcups:.4f}),\t({GCUPS_max_main:.4f} -> {gcups_main:.4f})")
                                         else:
@@ -455,11 +455,11 @@ def main(optTarget=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads
                                 binaries.append(preBinary) 
                             size = get_size_info(output_binary)
                             if size < Size_min:    
-                                gcups = get_gcups_from_command(f"./{output_binary} 1", numTest)
+                                gcups = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test3.fasta' 1", numTest)
                                 if (gcups-GCUPS_max)/GCUPS_max>0.005:
                                     gcups_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*10)
                                     if  gcups_main > GCUPS_max_main:
-                                        gcups = get_gcups_from_command(f"./{output_binary} 1", numTest*10)
+                                        gcups = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test3.fasta' 1", numTest*10)
                                         if gcups > GCUPS_max:
                                             if not flto:
                                                 print(f"(j: {j}, i: {i}),   {cycles} :=>\t({Size_min} -> {size})\t({GCUPS_max:.4f} -> {gcups:.4f}),\t({GCUPS_max_main:.4f} -> {gcups_main:.4f})")
@@ -486,12 +486,12 @@ def main(optTarget=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads
         print("---------------------------------------------\n")
         print('With Tuning:')
         compile_with_gcc(gcc_params_min, selected_indices_min, optPass, -1, optTarget, output_binary=output_binary, flto=flto)    
-        GCUPS_max = get_gcups_from_command(f"./{output_binary} 1", numTest*10)
+        GCUPS_max = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test3.fasta' 1", numTest*10)
+        GCUPS_max_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*10)
         if not flto:
             cycles_min = get_asm_info('./')
             instruction_count, total_instructions_min = count_instructions_in_directory('./')
             cycles_min.append(total_instructions_min)
-        GCUPS_max_main = get_gcups_from_command(f"./{output_binary} 'test2.fasta' 'test4.fasta' {NumOfThreads}", numTest*10)
         try:
             Size_min   = get_size_info(output_binary)
         except:
@@ -512,4 +512,4 @@ def main(optTarget=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads
         print(e.output)
 
 if __name__ == "__main__":
-    main(optTarget=1, numPar=260, numStop=5, numIter=50, numTest=5, NumOfThreads=20, alpha=20, beta=10, Par_Val=0, output_binary="SWAVX_tuned", flto=0, optPass='-O3')
+    main(optTarget=1, numPar=255, numStop=5, numIter=70, numTest=10, NumOfThreads=7, alpha=20, beta=30, Par_Val=0, output_binary="SWAVX_tuned", flto=0, optPass='-O3')

@@ -17,8 +17,10 @@ void SWAVX_512_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
     printf("\n");
     #endif
 
-    
-
+    __m512i *local_max = malloc(sizeof(__m512i));
+    __m512i temp = _mm512_set_epi32(0, 0, 0, 0, 0, 0, 0, 0,
+                                    0, 0, 0, 0, 0, 0, 0, 0);
+    _mm512_storeu_si512(local_max, temp);
     int Vsize = 16;
 
     double t;
@@ -77,8 +79,9 @@ void SWAVX_512_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
         __m512i* HH = (__m512i*) (H+ind+j_start);
         __m512i* PP = (__m512i*) (P+ind+j_start);
         
-        for (j=j_start; j <j_end-Vsize+1; j+=Vsize) { //Columns          
-           similarityScoreIntrinsic(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n);
+        for (j=j_start; j <j_end-Vsize+1; j+=Vsize) { //Columns       
+           
+           similarityScoreIntrinsic(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, local_max, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n);
            ii -= Vsize;
            jj += Vsize;
            Hu++;
@@ -96,7 +99,12 @@ void SWAVX_512_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
     } 
        #ifdef BT
        backtrack(P, maxPos, maxPos_max_len, m, n);
+       #else
+       __m512i tempmax = _mm512_loadu_si512(local_max);
+       int maxx       = _mm512_reduce_max_epi32(tempmax);
+       *maxVal = (maxx>*maxVal)? maxx: *maxVal;
        #endif
+       
     }
 
     #ifdef DEBUG
@@ -109,6 +117,7 @@ void SWAVX_512_SeqToSeq_SubMat(int8_t *a, int8_t *b, int *H, int* P, int m, int 
     printPredecessorMatrix(P, a, b, m, n);
     #endif
 
+    
 }
 
 void similarityScore(long long int ind, long long int ind_u, long long int ind_d, long long int ind_l, long long int ii, long long int jj, int* H, int* P, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int* maxVal, int8_t *a, int8_t *b, int m, int n) {
@@ -186,8 +195,7 @@ void similarityScore(long long int ind, long long int ind_u, long long int ind_d
 
 }  /* End of similarityScore */
 
-
-void similarityScoreIntrinsic(__m512i* HH,__m512i* Hu,__m512i* Hd,__m512i* Hl,__m512i* PP, __m512i reverseIndices, long long int ii, long long int jj, int* H, long long int ind, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int* maxVal, int8_t *a, int8_t *b, int m, int n) {
+void similarityScoreIntrinsic(__m512i* HH,__m512i* Hu,__m512i* Hd,__m512i* Hl,__m512i* PP, __m512i reverseIndices, long long int ii, long long int jj, int* H, long long int ind,  __m512i* local_max, long long int max_len, long long int* maxPos, long long int *maxPos_max_len, int* maxVal, int8_t *a, int8_t *b, int m, int n) {
 
    __m512i up, left, diag;
 
@@ -273,8 +281,9 @@ void similarityScoreIntrinsic(__m512i* HH,__m512i* Hu,__m512i* Hd,__m512i* Hl,__
     
     //Updates maximum score to be used as seed on backtrack 
     //Updates maximum score to be used as seed on backtrack 
-    int maxx       = _mm512_reduce_max_epi32(max);
     #ifdef BT
+    int maxx       = _mm512_reduce_max_epi32(max);
+    
     mask           = _mm512_cmpeq_epi32_mask(max, _mm512_set1_epi32(maxx));
     __m512i offset = _mm512_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
     int maxx_ind   = _mm512_mask_reduce_max_epi32(mask, offset);
@@ -283,7 +292,10 @@ void similarityScoreIntrinsic(__m512i* HH,__m512i* Hu,__m512i* Hd,__m512i* Hl,__
         *maxPos_max_len = max_len;
     }
     #else
-    *maxVal = (maxx>*maxVal)? maxx: *maxVal;
+    
+    __m512i tempmax = _mm512_loadu_si512(local_max);
+    tempmax = _mm512_max_epi32(max, tempmax);
+    _mm512_storeu_si512(local_max,tempmax);
     #endif
 }  /* End of similarityScore */
 

@@ -21,13 +21,13 @@ int main(int argc, char* argv[]) {
         }
     }
     else{
-        m = 9;
-        n = 8;
+        m = 6000;
+        n = 5000;
     }
     
     //Allocates a and b
-    a = malloc(m * sizeof(int8_t)+8);
-    b = malloc(n * sizeof(int8_t)+8);
+    a = malloc((m+32) * sizeof(int8_t));
+    b = malloc((n+32) * sizeof(int8_t));
     
     //Because now we have zeros
     m++;
@@ -62,10 +62,20 @@ int main(int argc, char* argv[]) {
     
     INT* maxVal = calloc(1, sizeof(INT));
 
+    #if defined(SMP) && defined(L8)
+    int8_t query_prof[32*m];
+    
+    for(int i=0; i<m; i++){
+        memcpy(query_prof+i*32, iBlosum62_8bit + a[i]*32, 32 * sizeof(int8_t));
+    }
+    #else
+    int8_t* query_prof;
+    #endif
+
     #ifdef B512
     SWAVX_512_SeqToSeq_SubMat(a, b, H, P, m, n, NumOfTest, maxVal);
     #else
-    SWAVX_256_SeqToSeq_SubMat(a, b, H, P, m, n, NumOfTest, maxVal);
+    SWAVX_256_SeqToSeq_SubMat(a, b, H, P, m, n, NumOfTest, maxVal, query_prof, 0);
     #endif
     
     //Gets final time
@@ -77,14 +87,17 @@ int main(int argc, char* argv[]) {
 
     //Frees similarity matrixes
     free(H);
+    #ifdef BT
     free(P);
+    #endif
+    
 
     //Frees input arrays
     free(a);
     free(b);
 
     free(maxVal);
-
+    
     return 0;
 
 }
