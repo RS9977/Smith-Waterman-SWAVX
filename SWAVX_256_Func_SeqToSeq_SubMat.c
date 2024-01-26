@@ -189,12 +189,12 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
            PP++;
         }
         #ifdef L8
-            
+            #ifndef SMP
             if(j_end-j > 4){
                 similarityScoreIntrinsic8(HH, Hu, Hd, Hl, PP, scores, reverseIndices, reverseIndices2, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n, j_end-j-1, query_case);
                 j = j_end;
             }
-            
+            #endif
         #endif
         for(;j<j_end; j++){   
             similarityScore(ind+j, ind_u+j, ind_d+j, ind_l+j, ii, jj, H, P, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n);
@@ -694,9 +694,39 @@ void similarityScoreIntrinsic8(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,_
 
     #elif defined(SMP) && defined(L8)
     
-    int8_t temp[32];
-    
 
+    #ifndef loop
+    //It's not working becasue gather32 needs 32bit aligned integers, but we have 8bit in chars
+    __m256i inds              = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+    int ind_temp;
+    if(!query_case){
+        ind_temp              = (ii-1)+(jj-1)*(m-1);
+            inds              = _mm256_mullo_epi32(inds, _mm256_set1_epi32(n+31-(n%32)));
+    }else{
+        ind_temp              = (jj-1)+(ii-1)*(n-1);
+            inds              = _mm256_mullo_epi32(inds, _mm256_set1_epi32(m+31-(m%32)));
+    }
+            inds              = _mm256_add_epi32(inds, _mm256_set1_epi32(ind_temp));
+    int inds_temp             = _mm256_extract_epi32(inds,7);
+    __m256i gatheredDataLow   = _mm256_i32gather_epi32((void*) scores, inds,  4);
+            inds              = _mm256_add_epi32(inds, _mm256_set1_epi32(inds_temp));
+    __m256i gatheredDataHigh  = _mm256_i32gather_epi32((void*) scores, inds, 4);
+    __m256i gatheredData1     = _mm256_packs_epi32(gatheredDataLow, gatheredDataHigh);
+    gatheredData1             = _mm256_permute4x64_epi64(gatheredData1, 0xd8);
+    __m256i gatheredData2;
+            inds              = _mm256_add_epi32(inds, _mm256_set1_epi32(inds_temp));
+    gatheredDataLow           = _mm256_i32gather_epi32((void*) scores, inds, 4);
+            inds              = _mm256_add_epi32(inds, _mm256_set1_epi32(inds_temp));
+    gatheredDataHigh          = _mm256_i32gather_epi32((void*) scores, inds, 4);
+    gatheredData2             = _mm256_packs_epi32(gatheredDataLow, gatheredDataHigh);
+    gatheredData2             = _mm256_permute4x64_epi64(gatheredData2, 0xd8); 
+    __m256i gatheredData      = _mm256_packs_epi16(gatheredData1,gatheredData2);
+     gatheredData             = _mm256_permute4x64_epi64(gatheredData, 0xd8);
+    diag                      = _mm256_add_epi8(HHd, gatheredData);
+
+    #else
+    //it's working but it needs a lot of memory, so for a little big queries it failes
+    int8_t temp[32];
     if(!query_case){
         int ind_temp = (ii-1)+(jj-1)*m;
         for (int iii = 0; iii < 32; ++iii) {
@@ -709,9 +739,10 @@ void similarityScoreIntrinsic8(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,_
             temp[iii] = (iii<k)? scores[ind_temp+iii*(m+31-(m%32))]:0;
         }
     }
+    
 
     diag = _mm256_add_epi8(HHd, _mm256_loadu_si256((__m256i*)temp));
-
+    #endif
     #else
     __m256i input = _mm256_loadu_si256((__m256i*)(a+ii-32));
     __m256i A     = _mm256_shuffle_epi8(input, reverseIndices);
