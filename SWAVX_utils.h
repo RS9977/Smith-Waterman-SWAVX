@@ -21,6 +21,12 @@ typedef struct {
     int length;
 } ProteinEntry;
 
+typedef struct {
+    int *lengths;              // Array of lengths of proteins in the batch
+    int8_t *transposedSequences; // Transposed sequences of the batch
+} ProteinBatch;
+
+
 #ifdef L8
 typedef int8_t INT;
 #elif L16
@@ -38,7 +44,9 @@ void saveInFile (INT *H, int8_t *a, int8_t *b, int m, int n);
 int readProteinDataset(const char *filename, ProteinEntry **proteinEntries, int *numEntries, int maxNumEnt);
 int getNumCPUThreads();
 void load_balance(int* chunck_start, int* chunck_num, int* chunck_size, int Hsize, int numEntries, ProteinEntry *proteinEntries, int NumOfThreads);
+void load_balance_batch(int* chunck_start, int* chunck_num, int* chunck_size, int Hsize, int numBatch, ProteinBatch *batch, int NumOfThreads, int batchSize);
 double wakeup_delay();
 double interval(struct timespec start, struct timespec end);
 int isValueInArray(int arr[], int size, int target);
+ProteinBatch transposeProteins(ProteinEntry* proteins, int proteinCount);
 

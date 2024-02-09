@@ -4,9 +4,10 @@ int main(int argc, char* argv[]) {
     
     //double wk = wakeup_delay();
 
-    const char *filenameA = "test2.fasta"; 
-    const char *filenameB = "test4.fasta"; 
-    int NumOfThreads      = getNumCPUThreads();
+    const char *filenameA = "test14.fasta"; 
+    const char *filenameB = "test7.fasta"; 
+    //int NumOfThreads      = getNumCPUThreads();
+    int NumOfThreads      = 1;
     if(NumOfThreads<1){
         NumOfThreads = 1;
     }
@@ -56,24 +57,50 @@ int main(int argc, char* argv[]) {
             max_SizeB = proteinEntriesB[i].length;
     }
     
+
     //Load balancing
     int B_chunck_start[MAX_THREAD];
     int B_chunck_num  [MAX_THREAD];
     int B_chunck_size [MAX_THREAD];
+    #ifndef Query
     load_balance(B_chunck_start, B_chunck_num, B_chunck_size, HsizeB, numEntriesB, proteinEntriesB, NumOfThreads);
+    #endif
 
+    #ifndef Query
     int MaxHSize = (max_sizeA+2)*(max_SizeB+2);
+    #else
+    int MaxHSize = 32*(max_sizeA+2)*(max_SizeB+2);
+    #endif
+
+    ProteinBatch* batches;
+    #ifdef Query
+    int batchSizes = 32;
+    int totalBatches = (numEntriesB + batchSizes - 1) / batchSizes; // Calculate the total number of batches, rounding up
+
+    // Dynamically allocate memory for the batches array based on the calculated total number of batches
+    batches = (ProteinBatch*)malloc(totalBatches * sizeof(ProteinBatch));
+    if (batches == NULL) {
+        fprintf(stderr, "Memory allocation for batches failed.\n");
+        return 1;
+    }
+    for (int i = 0; i < totalBatches; ++i) {
+        batches[i] = transposeProteins(&proteinEntriesB[i * batchSizes], batchSizes);
+    }
     
+    load_balance_batch(B_chunck_start, B_chunck_num, B_chunck_size, HsizeB, totalBatches, batches, NumOfThreads, 32);
+    
+    #endif
 
     INT* maxVal  = calloc(numEntriesA * numEntriesB, sizeof(INT));
     //Allocates similarity matrix H
     //INT *H;
+    #ifndef DAlloc
     #ifdef SAVEHP
     INT *H = calloc((HsizeA+numEntriesA) * (HsizeB+numEntriesB), sizeof(INT));
     #else
     INT *H = calloc(NumOfThreads*MaxHSize, sizeof(INT));
     #endif
-
+    
     //Allocates predecessor matrix P
     
     #ifdef BT
@@ -84,6 +111,9 @@ int main(int argc, char* argv[]) {
     #endif
     #else
     INT *P = calloc(1, sizeof(INT));
+    #endif
+    #else
+    INT *H;
     #endif
 
     struct timespec time_start, time_stop;
@@ -97,10 +127,18 @@ int main(int argc, char* argv[]) {
         for(t=0; t<NumOfThreads; t++){ 
             
             thread_data_array[t].proteinA = proteinEntriesA;  
+            #ifndef Query
             thread_data_array[t].proteinB = proteinEntriesB + B_chunck_start[t];  
+            
+            #else
+            thread_data_array[t].batch    = batches + B_chunck_start[t];
+            thread_data_array[t].MaxHSize = MaxHSize;
+            #endif
+            #ifndef DAlloc
             thread_data_array[t].H        = H+start;
             #ifdef BT
             thread_data_array[t].P        = P+start;
+            #endif
             #endif
             thread_data_array[t].A_num    = numEntriesA;
             thread_data_array[t].B_num    = B_chunck_num[t];
@@ -158,7 +196,9 @@ int main(int argc, char* argv[]) {
 
     //Frees similarity matrixes
     free(H);
+    #ifdef BT
     free(P);
+    #endif
 
     free(maxVal);
     
@@ -172,6 +212,13 @@ int main(int argc, char* argv[]) {
     }
     free(proteinEntriesB);
 
+    #ifdef Query
+    for (int i = 0; i < totalBatches; ++i) {
+        free(batches[i].transposedSequences);
+        free(batches[i].lengths);
+    }
+    free(batches);
+    #endif
     return 0;
 }
 
@@ -179,10 +226,20 @@ int main(int argc, char* argv[]) {
 void* chunck_computations(void* in){
     WorkerIns *inss = (WorkerIns *) in;
     ProteinEntry *proteinEntriesA = inss -> proteinA;
+    #ifndef Query
     ProteinEntry *proteinEntriesB = inss -> proteinB;
+   
+    #else
+    ProteinBatch *batches         = inss -> batch;
+    int MaxHSize                  = inss -> MaxHSize;
+    #endif
+    #ifndef DAlloc
     INT* H                        = inss -> H;
-    INT* maxVal                   = inss -> maxVal;
+    #endif
+    
     INT* P;
+    
+    INT* maxVal                   = inss -> maxVal;
     #ifdef BT
          P                        = inss -> P;
     #endif
@@ -191,18 +248,28 @@ void* chunck_computations(void* in){
     #ifdef SAVEHP
     long long int start           = 0;
     #endif
-    int  i,j;
+    
 
     #ifdef PARASAIL
     parasail_matrix_t *matrix = parasail_matrix_create("ARNDCEQGHILKMFPSTWYV", matchScore, missmatchScore);
     #endif
 
-
+    int  i,j;
     
     
-
+    
     for(i=0; i<A_num; i++){
         #if defined(SMP) && defined(L8)
+        int8_t query_prof[32*proteinEntriesA[i].length];    
+        for(int i=0; i<proteinEntriesA[i].length; i++){
+            memcpy(query_prof+i*32, iBlosum62_8bit + proteinEntriesA[i].protein[i]*32, 32 * sizeof(int8_t));
+        }
+        #elif defined(SMPP) && defined(L8)
+        int8_t query_prof[32*proteinEntriesA[i].length];    
+        for(int i=0; i<proteinEntriesA[i].length; i++){
+            memcpy(query_prof+i*32, iBlosum62_8bit + proteinEntriesA[i].protein[i]*32, 32 * sizeof(int8_t));
+        }
+        #elif Query
         int8_t query_prof[32*proteinEntriesA[i].length];    
         for(int i=0; i<proteinEntriesA[i].length; i++){
             memcpy(query_prof+i*32, iBlosum62_8bit + proteinEntriesA[i].protein[i]*32, 32 * sizeof(int8_t));
@@ -211,17 +278,33 @@ void* chunck_computations(void* in){
         int8_t* query_prof;
         #endif
         
-
+        #ifdef PARASAIL
+        #ifdef QP
+        // Create a profile for the query sequence
+        parasail_profile_t *profile = parasail_profile_create_avx_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, &parasail_blosum62);
+        #endif
+        #endif
+       
+        
         for(j=0; j<B_num; j++){
-            #ifdef PARASAIL
+            #ifdef DAlloc
+            INT* H = calloc((proteinEntriesA[i].length+32)*(batches[j].lengths[31]+32)*32, sizeof(INT));
+            #endif
+            #ifdef Query
+            if(proteinEntriesA[i].length < batches[j].lengths[31])
+                SWAVX_256_SeqToSeq_QueryLTBatch(batches[j], proteinEntriesA[i].protein, H, P, proteinEntriesA[i].length, NumOfTest, (maxVal+i+A_num*j), query_prof, (proteinEntriesA[i].length+2)*(batches[j].lengths[31]+2));
+            else
+                SWAVX_256_SeqToSeq_QueryBTBatch(proteinEntriesA[i].protein, batches[j], H, P, proteinEntriesA[i].length, NumOfTest, (maxVal+i+A_num*j), query_prof, (proteinEntriesA[i].length+2)*(batches[j].lengths[31]+2));
+            #elif PARASAIL
                 parasail_result_t *result = NULL;
+                #ifndef QP
                 #ifdef L8
                 #ifdef P_scan
                     result = parasail_sw_scan_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, matrix);
                 #elif P_diag
                     result = parasail_sw_diag_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, matrix);
                 #else
-                    result = parasail_sw_striped_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, matrix);
+                    result = parasail_sw_striped_avx2_256_8(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, &parasail_blosum62);
                 #endif
                 #elif L16
                 #ifdef P_scan
@@ -239,6 +322,9 @@ void* chunck_computations(void* in){
                 #else
                     result = parasail_sw_striped_avx2_256_32(proteinEntriesA[i].protein, proteinEntriesA[i].length, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1, matrix);
                 #endif
+                #endif
+                #else
+                    result = parasail_sw_scan_profile_avx2_256_8(profile, proteinEntriesB[j].protein, proteinEntriesB[j].length, 11, 1);
                 #endif
                 *(maxVal+i+A_num*j) = result->score;
                 parasail_result_free(result);
@@ -286,7 +372,16 @@ void* chunck_computations(void* in){
             #ifdef SAVEHP
             start += (proteinEntriesA[i].length+1) * (proteinEntriesB[j].length+1);
             #endif
+            #ifdef DAlloc
+            free(H);
+            #endif
         }
+        
+        #ifdef PARASAIL
+        #ifdef QP
+        parasail_profile_free(profile);
+        #endif
+        #endif
     }
     
 }

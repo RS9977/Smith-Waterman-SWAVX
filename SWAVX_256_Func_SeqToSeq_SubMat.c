@@ -22,15 +22,49 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
     INT* e = calloc(n, sizeof(INT));
     #endif
     
-    __int8_t* scores;
-    
-    local_max = _mm256_setzero_si256();
-    #if defined(SMP) && defined(L8)
+    int8_t* scores;
     __m256i* query_prof_pointer = (__m256i*) query_prof;
+    local_max = _mm256_setzero_si256();
+
+    #if defined(SMQPL) && defined(L8)
     if(!query_case){
         scores = malloc((m *(n+32) + 1024)* sizeof(int8_t));
-        __m256i* scores_pointer = (__m256i*) scores;
+        
         for(int p=0; p<m; p++){
+            __m256i* scores_pointer = (__m256i*) scores;
+            __m256i* query_prof_pointer = (__m256i*) query_prof;
+            __m256i query_temp = _mm256_loadu_si256(query_prof_pointer);
+            for(int q=0; q<n; q+=32){
+                __m256i b_temp = _mm256_loadu_si256((__m256i*)(b+q));
+                __m256i temp = _mm256_shuffle_epi8(query_temp, b_temp);
+                _mm256_storeu_si256(scores_pointer, temp);
+                scores_pointer++;
+            }
+        }
+    }
+    else{
+        scores = malloc((n *(m+32) + 1024)* sizeof(int8_t));
+        __m256i* scores_pointer = (__m256i*) scores;
+        for(int p=0; p<n; p++){
+            __m256i query_temp = _mm256_loadu_si256(query_prof_pointer);
+            for(int q=0; q<m; q+=32){
+                __m256i a_temp = _mm256_loadu_si256((__m256i*)(a+q));
+                __m256i temp = _mm256_shuffle_epi8(query_temp, a_temp);
+                _mm256_storeu_si256(scores_pointer, temp);
+                scores_pointer++;
+            }
+            query_prof_pointer++;
+        }
+    }
+    #endif
+
+
+    #if defined(SMP) && defined(L8)
+    if(!query_case){
+        scores = malloc((m *(n+32) + 1024)* sizeof(int8_t));
+        
+        for(int p=0; p<m; p++){
+            __m256i* scores_pointer = (__m256i*) scores;
             __m256i query_temp = _mm256_loadu_si256(query_prof_pointer);
             for(int q=0; q<n; q+=32){
                 __m256i b_temp = _mm256_loadu_si256((__m256i*)(b+q));
@@ -56,6 +90,7 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
         }
     }
     #endif
+    
     
     
 
@@ -173,7 +208,7 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
         for (j=j_start; j <j_end-Vsize+1; j+=Vsize) { //Columns          
            
            #ifdef L8
-           similarityScoreIntrinsic8(HH, Hu, Hd, Hl, PP, scores, reverseIndices, reverseIndices2, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n, 32, query_case);
+           similarityScoreIntrinsic8(HH, Hu, Hd, Hl, PP, scores, query_prof_pointer, reverseIndices, reverseIndices2, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n, 32, query_case);
            #elif L16
            similarityScoreIntrinsic16(HH, Hu, Hd, Hl, PP, reverseIndices, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n);
            #else
@@ -190,10 +225,12 @@ void SWAVX_256_SeqToSeq_SubMat(int8_t *a, int8_t *b, INT *H, INT* P, int m, int 
         }
         #ifdef L8
             #ifndef SMP
+            #ifndef SMPP
             if(j_end-j > 4){
-                similarityScoreIntrinsic8(HH, Hu, Hd, Hl, PP, scores, reverseIndices, reverseIndices2, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n, j_end-j-1, query_case);
+                similarityScoreIntrinsic8(HH, Hu, Hd, Hl, PP, scores, query_prof_pointer, reverseIndices, reverseIndices2, ii, jj, H, ind+j, max_len, &maxPos, &maxPos_max_len, maxVal, a, b, m, n, j_end-j-1, query_case);
                 j = j_end;
             }
+            #endif
             #endif
         #endif
         for(;j<j_end; j++){   
@@ -628,7 +665,7 @@ void similarityScoreIntrinsic16(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,
 
 
 
-void similarityScoreIntrinsic8(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, int8_t* scores, RevType reverseIndices, __m256i reverseIndices2, long long int ii, long long int jj, INT* H, long long int ind   , long long int max_len, long long int* maxPos, long long int *maxPos_max_len, INT* maxVal, int8_t *a, int8_t *b, int m, int n, int k, bool query_case) {
+void similarityScoreIntrinsic8(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,__m256i* PP, int8_t* scores, __m256i* query_prof_pointer, RevType reverseIndices, __m256i reverseIndices2, long long int ii, long long int jj, INT* H, long long int ind   , long long int max_len, long long int* maxPos, long long int *maxPos_max_len, INT* maxVal, int8_t *a, int8_t *b, int m, int n, int k, bool query_case) {
 
    __m256i up, left, diag;
     
@@ -691,7 +728,40 @@ void similarityScoreIntrinsic8(__m256i* HH,__m256i* Hu,__m256i* Hd,__m256i* Hl,_
     __m256i gatheredData     = _mm256_packs_epi16(gatheredData1,gatheredData2);
      gatheredData             = _mm256_permute4x64_epi64(gatheredData, 0xd8);
     diag                    = _mm256_add_epi8(HHd, gatheredData);
-
+    #elif defined(SMPP) && defined(L8)
+    __m256i final_register = _mm256_setzero_si256(); 
+    if(query_case){
+        for (int p = 0; p < 32; ++p) {
+            __m256i temp_qu = _mm256_shuffle_epi8(_mm256_loadu_si256(query_prof_pointer+p+jj-1), _mm256_set1_epi8(a[ii-p-1]));
+            int element = _mm256_extract_epi8(temp_qu, 0);
+            
+            __m128i temp = _mm_set1_epi8((char)element); // Create a 128-bit vector with the extracted element
+            temp = _mm_srli_si128(temp, 15); // Shift right to get the element into the lowest byte position
+            if (p < 16) {
+                final_register = _mm256_inserti128_si256(final_register, temp, 0); // Insert into lower 128 bits
+                final_register = _mm256_permute4x64_epi64(final_register, 0x39); // Permute to rotate
+            } else {
+                final_register = _mm256_inserti128_si256(final_register, temp, 1); // Insert into higher 128 bits
+                final_register = _mm256_permute4x64_epi64(final_register, 0x93); // Permute to rotate
+            }
+        }
+    }else{
+        for (int p = 0; p < 32; ++p) {
+            // Extract the 8-bit element from the ith YMM register
+            __m256i temp_qu =_mm256_shuffle_epi8(_mm256_loadu_si256(query_prof_pointer+ii-p-1), _mm256_set1_epi8(b[p+jj-1]));
+            int element = _mm256_extract_epi8(temp_qu, 0);
+            __m128i temp = _mm_set1_epi8((char)element); // Create a 128-bit vector with the extracted element
+            temp = _mm_srli_si128(temp, 15); // Shift right to get the element into the lowest byte position
+            if (p < 16) {
+                final_register = _mm256_inserti128_si256(final_register, temp, 0); // Insert into lower 128 bits
+                final_register = _mm256_permute4x64_epi64(final_register, 0x39); // Permute to rotate
+            } else {
+                final_register = _mm256_inserti128_si256(final_register, temp, 1); // Insert into higher 128 bits
+                final_register = _mm256_permute4x64_epi64(final_register, 0x93); // Permute to rotate
+            }
+        }
+    }
+    diag                      = _mm256_add_epi8(HHd, final_register);
     #elif defined(SMP) && defined(L8)
     
 

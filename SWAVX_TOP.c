@@ -21,8 +21,8 @@ int main(int argc, char* argv[]) {
         }
     }
     else{
-        m = 6000;
-        n = 5000;
+        m = 34;
+        n = 32;
     }
     
     //Allocates a and b
@@ -62,7 +62,13 @@ int main(int argc, char* argv[]) {
     
     INT* maxVal = calloc(1, sizeof(INT));
 
-    #if defined(SMP) && defined(L8)
+    #if defined(SMPP) && defined(L8)
+    int8_t query_prof[32*m];
+    
+    for(int i=0; i<m; i++){
+        memcpy(query_prof+i*32, iBlosum62_8bit + a[i]*32, 32 * sizeof(int8_t));
+    }
+    #elif defined(SMP) && defined(L8)
     int8_t query_prof[32*m];
     
     for(int i=0; i<m; i++){

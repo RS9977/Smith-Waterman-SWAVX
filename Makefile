@@ -113,6 +113,7 @@ AVX2_8_MT_datasets:
 
 
 CFLAGS = -O3 -mavx2 -lpthread
+CFLAGS_Query = -O3 -mavx2 -lpthread -D Query -D L8 -D DAlloc
 CFLAGS_512 = -O3 -mavx512f -lpthread
 
 # Get VARs from the user as a space-separated list
@@ -120,8 +121,9 @@ override VAR += $(filter-out $@,$(MAKECMDGOALS))
 
 # Check if VAR is defined, and if so, add it to CFLAGS
 ifdef VAR
-CFLAGS     += $(foreach var,$(VAR),-D $(var))
-CFLAGS_512 += $(foreach var,$(VAR),-D $(var))
+CFLAGS       += $(foreach var,$(VAR),-D $(var))
+CFLAGS_512   += $(foreach var,$(VAR),-D $(var))
+CFLAGS_Query += $(foreach var,$(VAR),-D $(var))
 endif
 
 
@@ -138,6 +140,13 @@ clean_PARA:
 
 AVX2:
 	gcc $(CFLAGS) $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c -o SWAVX
+
+
+
+
+AVX2_Query:
+	gcc $(CFLAGS_Query) $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_Query.c -o SWAVX
+
 
 AVX2_WIN:
 	x86_64-w64-mingw32-gcc $(CFLAGS) $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c -mavx2 -lpthread -static -o SWAVX.exe

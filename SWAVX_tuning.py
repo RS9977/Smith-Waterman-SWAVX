@@ -71,8 +71,8 @@ def compile_with_gcc(gcc_params, selected_indices, opt, i=-1, optTarget=2, outpu
         if flto:
             gcc_command1 = ["gcc", opt, "-mavx2", "-flto", "-fsave-optimization-record", "-D", "L8", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", output_binary]
         else:
-            gcc_command1 = ["gcc", opt, "-mavx2", "-D", "L8",  "-D", "AFFINE", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", output_binary]
-            gcc_command2 = ["gcc", opt, "-mavx2", "-D", "L8",  "-D", "AFFINE", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-S"]
+            gcc_command1 = ["gcc", opt, "-mavx2", "-D", "L8", "-D", "SUBMAT", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-o", output_binary]
+            gcc_command2 = ["gcc", opt, "-mavx2", "-D", "L8", "-D", "SUBMAT", "-lpthread", "SWAVX_utils.c", "SWAVX_SubMat.c", "SWAVX_TOP_datasets_MultiThread.c", "SWAVX_256_Func_SeqToSeq_SubMat.c", "-S"]
             
         for param_name, param_value in gcc_params.items():
             if param_cnt not in selected_indices:
@@ -512,4 +512,4 @@ def main(optTarget=1, numPar=260, numStop=3, numIter=50, numTest=5, NumOfThreads
         print(e.output)
 
 if __name__ == "__main__":
-    main(optTarget=1, numPar=255, numStop=5, numIter=70, numTest=10, NumOfThreads=7, alpha=20, beta=30, Par_Val=0, output_binary="SWAVX_tuned", flto=0, optPass='-O3')
+    main(optTarget=1, numPar=255, numStop=5, numIter=70, numTest=5, NumOfThreads=28, alpha=30, beta=30, Par_Val=0, output_binary="SWAVX_tuned", flto=0, optPass='-O3')

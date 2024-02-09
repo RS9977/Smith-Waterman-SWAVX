@@ -276,6 +276,36 @@ void load_balance(int* chunck_start, int* chunck_num, int* chunck_size, int Hsiz
     }
 }
 
+
+void load_balance_batch(int* chunck_start, int* chunck_num, int* chunck_size, int Hsize, int numBatch, ProteinBatch *batch, int NumOfThreads, int batchSize){
+    int cnt = 0;
+    int sizeOfChunk = Hsize/NumOfThreads;
+    int temp_size = 0;
+    int temp_temp_size = 0;
+    chunck_start[0] = 0;
+    int temp_i=-1;
+    int i;
+    for(i=0; i<numBatch; i++){
+        for(int j=0; j<batchSize; j++){
+            temp_size += batch[i].lengths[j];    
+        }
+
+        if(temp_size>sizeOfChunk*(cnt+1)){
+            chunck_start[cnt+1] = i+1;
+            chunck_size[cnt] = temp_size - temp_temp_size;
+            chunck_num[cnt]  = i - temp_i;
+            cnt ++;
+            temp_temp_size = temp_size;
+            temp_i = i;
+        }
+        if(cnt==NumOfThreads-1){
+            chunck_size[cnt] = Hsize - temp_temp_size;
+            chunck_num[cnt]  = numBatch-1 -temp_i;
+            break;
+        }
+    }
+}
+
 //Wake Up
 double interval(struct timespec start, struct timespec end)
 {
@@ -318,4 +348,40 @@ int isValueInArray(int arr[], int size, int target) {
         }
     }
     return 0; // Target value not found in the array
+}
+
+
+ProteinBatch transposeProteins(ProteinEntry* proteins, int proteinCount) {
+    ProteinBatch batch;
+    int maxLength = 0;
+
+    // Find the maximum length among all proteins in the batch
+    for (int i = 0; i < proteinCount; ++i) {
+        if (proteins[i].length > maxLength) {
+            maxLength = proteins[i].length;
+        }
+    }
+
+    // Allocate memory for storing transposed sequences and lengths
+    batch.transposedSequences = (char *)malloc(maxLength * proteinCount * sizeof(char));
+    batch.lengths = (int *)malloc(proteinCount * sizeof(int));
+
+    // Initialize lengths
+    for (int i = 0; i < proteinCount; ++i) {
+        batch.lengths[i] = proteins[i].length;
+    }
+
+    // Transpose sequences
+    for (int i = 0; i < maxLength; ++i) { // Iterate through each position up to maxLength
+        for (int j = 0; j < proteinCount; ++j) { // Iterate through each protein
+            int index = i * proteinCount + j; // Calculate the index in the transposed array
+            if (i < proteins[j].length) {
+                batch.transposedSequences[index] = proteins[j].protein[i]; // Copy the character if within length
+            } else {
+                batch.transposedSequences[index] = 0; // Pad with 0 otherwise
+            }
+        }
+    }
+
+    return batch;
 }
