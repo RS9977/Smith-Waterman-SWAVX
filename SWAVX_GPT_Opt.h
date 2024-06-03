@@ -14,3 +14,4 @@
 
 void SWAVX_SeqToSeq_serial(int8_t *a, int8_t *b, INT *H, INT* P, int m, int n, int NumOfTest, INT* maxVal);
 int matchMissmatchScore(int i, int j, int8_t *a, int8_t *b);
+void similarityScore(int8_t* a, int8_t* b, int m, int n, int i, int j, INT* H, INT* P, int* maxVal);
