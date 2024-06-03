@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
             max_SizeB = proteinEntriesB[i].length;
     }
     
-
+    printf("size B: %lld\n",  HsizeB);
     //Load balancing
     int B_chunck_start[MAX_THREAD];
     int B_chunck_num  [MAX_THREAD];
@@ -290,7 +290,12 @@ void* chunck_computations(void* in){
             #ifdef DAlloc
             INT* H = calloc((proteinEntriesA[i].length+32)*(batches[j].lengths[31]+32)*32, sizeof(INT));
             #endif
-            #ifdef Query
+
+            #ifdef SERIAL
+                SWAVX_SeqToSeq_serial(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H, P, proteinEntriesA[i].length, proteinEntriesB[j].length, NumOfTest, (maxVal+i+A_num*j));
+            #elif GPT
+                SWAVX_GPT_Func(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H, P, proteinEntriesA[i].length, proteinEntriesB[j].length, (maxVal+i+A_num*j));
+            #elif Query
             if(proteinEntriesA[i].length < batches[j].lengths[31])
                 SWAVX_256_SeqToSeq_QueryLTBatch(batches[j], proteinEntriesA[i].protein, H, P, proteinEntriesA[i].length, NumOfTest, (maxVal+i+A_num*j), query_prof, (proteinEntriesA[i].length+2)*(batches[j].lengths[31]+2));
             else

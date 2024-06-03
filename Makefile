@@ -141,8 +141,11 @@ clean_PARA:
 AVX2:
 	gcc $(CFLAGS) $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_SubMat.c -o SWAVX
 
+AVX2_SERIAL:
+	gcc $(CFLAGS) $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_Serial.c -D SERIAL -o SWAVX
 
-
+AVX2_GPT:
+	gcc $(CFLAGS) $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_GPT.c -D GPT -o SWAVX
 
 AVX2_Query:
 	gcc $(CFLAGS_Query) $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_Query.c -o SWAVX

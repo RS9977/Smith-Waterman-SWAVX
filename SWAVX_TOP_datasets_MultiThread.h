@@ -10,8 +10,11 @@
 #endif
 
 
-
-#ifdef B512
+#ifdef SERIAL
+#include "SWAVX_Serial.h"
+#elif GPT
+#include "SWAVX_GPT.h"
+#elif B512
 #include "SWAVX_512_Func_SeqToSeq_SubMat.h"
 #elif Query
 #include "SWAVX_256_Func_SeqToSeq_Query.h"
