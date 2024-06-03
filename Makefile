@@ -147,6 +147,9 @@ AVX2_SERIAL:
 AVX2_GPT:
 	gcc $(CFLAGS) $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_GPT.c -D GPT -o SWAVX
 
+AVX2_GPT_Opt:
+	gcc $(CFLAGS) $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_GPT_Opt.c -D GPTOPT -o SWAVX
+
 AVX2_Query:
 	gcc $(CFLAGS_Query) $(src) SWAVX_TOP_datasets_MultiThread.c SWAVX_256_Func_SeqToSeq_Query.c -o SWAVX
 

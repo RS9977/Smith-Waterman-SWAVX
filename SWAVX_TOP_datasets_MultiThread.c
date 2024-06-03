@@ -293,6 +293,8 @@ void* chunck_computations(void* in){
 
             #ifdef SERIAL
                 SWAVX_SeqToSeq_serial(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H, P, proteinEntriesA[i].length, proteinEntriesB[j].length, NumOfTest, (maxVal+i+A_num*j));
+            #elif GPTOPT
+                SWAVX_SeqToSeq_serial(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H, P, proteinEntriesA[i].length, proteinEntriesB[j].length, NumOfTest, (maxVal+i+A_num*j));
             #elif GPT
                 SWAVX_GPT_Func(proteinEntriesA[i].protein, proteinEntriesB[j].protein, H, P, proteinEntriesA[i].length, proteinEntriesB[j].length, (maxVal+i+A_num*j));
             #elif Query

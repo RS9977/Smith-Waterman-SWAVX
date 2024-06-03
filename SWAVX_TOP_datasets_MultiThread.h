@@ -14,6 +14,8 @@
 #include "SWAVX_Serial.h"
 #elif GPT
 #include "SWAVX_GPT.h"
+#elif GPTOPT
+#include "SWAVX_GPT_Opt.h"
 #elif B512
 #include "SWAVX_512_Func_SeqToSeq_SubMat.h"
 #elif Query
